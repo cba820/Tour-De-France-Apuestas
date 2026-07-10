@@ -1,16 +1,47 @@
 {% extends "base.html" %}
 {% block title %}Admin · Predicciones TDF 2026{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{# Dropdown filtrable de corredores. Si el valor guardado no está en la lista
+   (p. ej. un nombre scrapeado sin acento), se añade como opción para no perderlo. #}
+{% macro rider_select(name, label, current, riders) %}
+{% set names = riders | map(attribute='name') | list %}
+<label class="form-label small">{{ label }}</label>
+<select name="{{ name }}" class="rider-select" autocomplete="off" placeholder="Escribe para filtrar…">
+  <option value="">— Sin selección —</option>
+  {% for r in riders %}
+  <option value="{{ r.name }}" {{ 'selected' if current == r.name }}>{{ r.name }}</option>
+  {% endfor %}
+  {% if current and current not in names %}
+  <option value="{{ current }}" selected>{{ current }} (fuera de lista)</option>
+  {% endif %}
+</select>
+{% endmacro %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h2 class="mb-0"><i class="bi bi-gear-fill"></i> Panel de administración</h2>
-  <form method="post" action="{{ url_for('admin.force_update') }}">
-    <button class="btn btn-tdf"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
-  </form>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="{{ url_for('admin.reopen_voting') }}"
+          onsubmit="return confirm('¿Reabrir la votación de la etapa activa por 1 hora?');">
+      <button class="btn btn-outline-warning" {{ 'disabled' if not active_stage }}>
+        <i class="bi bi-unlock-fill"></i> Abrir votación 1 hora
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('admin.force_update') }}">
+      <button class="btn btn-tdf"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
+    </form>
+  </div>
 </div>
 <p class="text-muted small">
-  El botón intenta scrapear los resultados de las etapas ya disputadas y recalcula puntos y ranking.
-  Si el scraping falla, ingresa los resultados manualmente abajo. La votación de cada etapa se cierra
-  1 h antes de la hora de salida.
+  El botón <strong>Actualizar resultados</strong> scrapea las etapas ya disputadas (podio +
+  maillots amarillo/verde/montaña) y recalcula puntos y ranking. El maillot blanco se ingresa a mano.
+  <strong>Abrir votación 1 hora</strong> reabre la etapa activa
+  {% if active_stage %}(<strong>Etapa {{ active_stage.number }}</strong>){% endif %}
+  solo para casos fortuitos. Si el scraping falla, ingresa los resultados manualmente abajo.
 </p>
 
 <div class="accordion" id="stagesAcc">
@@ -36,13 +67,13 @@
             </div>
           </div>
           <div class="row g-2">
-            <div class="col-md-4"><label class="form-label small">🥇 1º</label><input name="first_rider" class="form-control form-control-sm" value="{{ s.result.first_rider if s.result else '' }}"></div>
-            <div class="col-md-4"><label class="form-label small">🥈 2º</label><input name="second_rider" class="form-control form-control-sm" value="{{ s.result.second_rider if s.result else '' }}"></div>
-            <div class="col-md-4"><label class="form-label small">🥉 3º</label><input name="third_rider" class="form-control form-control-sm" value="{{ s.result.third_rider if s.result else '' }}"></div>
-            <div class="col-md-3"><label class="form-label small">🟡 Amarillo</label><input name="yellow_rider" class="form-control form-control-sm" value="{{ s.result.yellow_rider if s.result else '' }}"></div>
-            <div class="col-md-3"><label class="form-label small">🟢 Verde</label><input name="green_rider" class="form-control form-control-sm" value="{{ s.result.green_rider if s.result else '' }}"></div>
-            <div class="col-md-3"><label class="form-label small">🔴 Puntos</label><input name="polka_rider" class="form-control form-control-sm" value="{{ s.result.polka_rider if s.result else '' }}"></div>
-            <div class="col-md-3"><label class="form-label small">⚪ Blanco</label><input name="white_rider" class="form-control form-control-sm" value="{{ s.result.white_rider if s.result else '' }}"></div>
+            <div class="col-md-4">{{ rider_select('first_rider', '🥇 1º', s.result.first_rider if s.result else '', riders) }}</div>
+            <div class="col-md-4">{{ rider_select('second_rider', '🥈 2º', s.result.second_rider if s.result else '', riders) }}</div>
+            <div class="col-md-4">{{ rider_select('third_rider', '🥉 3º', s.result.third_rider if s.result else '', riders) }}</div>
+            <div class="col-md-3">{{ rider_select('yellow_rider', '🟡 Amarillo', s.result.yellow_rider if s.result else '', riders) }}</div>
+            <div class="col-md-3">{{ rider_select('green_rider', '🟢 Verde', s.result.green_rider if s.result else '', riders) }}</div>
+            <div class="col-md-3">{{ rider_select('polka_rider', '🔴 Montaña', s.result.polka_rider if s.result else '', riders) }}</div>
+            <div class="col-md-3">{{ rider_select('white_rider', '⚪ Blanco', s.result.white_rider if s.result else '', riders) }}</div>
           </div>
           <div class="mt-3 d-flex gap-2">
             <button type="submit" name="save_results" value="1" class="btn btn-sm btn-tdf">Guardar resultados y cerrar etapa</button>
@@ -54,4 +85,9 @@
   </div>
   {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{{ url_for('static', filename='js/rider-select.js') }}"></script>
 {% endblock %}

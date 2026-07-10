@@ -73,29 +73,44 @@ def _register_template_helpers(app):
 
 
 def _start_scheduler(app, config_class):
-    """Arranca el job diario de actualización de resultados."""
+    """Arranca el poller de resultados: revisa cada N minutos y solo scrapea
+    cuando la etapa activa ya debería haber terminado, hasta obtener resultados."""
+    from datetime import timedelta
+
     from apscheduler.schedulers.background import BackgroundScheduler
+    from .models import Stage
     from .updater import update_results
+
+    interval = config_class.RESULTS_POLL_INTERVAL_MINUTES
+    duration = config_class.STAGE_EXPECTED_DURATION_HOURS
 
     def job():
         with app.app_context():
             try:
+                now = now_local()
+                # Etapa activa = primera no terminada.
+                active = (Stage.query.filter_by(is_finished=False)
+                          .order_by(Stage.number).first())
+                # Solo intentar cuando la etapa activa ya debería haber terminado.
+                if active is None or now < active.start_time + timedelta(hours=duration):
+                    return
                 msg = update_results()
-                print(f"[scheduler] {now_local():%Y-%m-%d %H:%M} - {msg}")
+                print(f"[scheduler] {now:%Y-%m-%d %H:%M} - {msg}")
             except Exception as exc:  # noqa: BLE001
                 print(f"[scheduler] Error: {exc}")
 
     scheduler = BackgroundScheduler(daemon=True, timezone=config_class.TIMEZONE)
     scheduler.add_job(
         job,
-        "cron",
-        hour=config_class.DAILY_UPDATE_HOUR,
-        minute=config_class.DAILY_UPDATE_MINUTE,
-        id="daily_update",
+        "interval",
+        minutes=interval,
+        id="results_poller",
         replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=300,
+        coalesce=True,
     )
     scheduler.start()
-    print(f"[scheduler] Job diario registrado a las "
-          f"{config_class.DAILY_UPDATE_HOUR:02d}:{config_class.DAILY_UPDATE_MINUTE:02d} "
-          f"({config_class.TIMEZONE}).")
+    print(f"[scheduler] Poller de resultados cada {interval} min "
+          f"(intenta desde salida + {duration} h) · {config_class.TIMEZONE}.")
     atexit.register(lambda: scheduler.shutdown(wait=False))

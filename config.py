@@ -27,6 +27,12 @@ class Config:
     DAILY_UPDATE_HOUR = 15
     DAILY_UPDATE_MINUTE = 0
 
+    # El poller de resultados corre cada N minutos, pero solo intenta scrapear
+    # una etapa cuando ya debería haber terminado: start_time + esta duración.
+    # Salida ~07:00 Chile + 4.5 h ≈ 11:30, cuando ya hay resultados publicados.
+    RESULTS_POLL_INTERVAL_MINUTES = 10
+    STAGE_EXPECTED_DURATION_HOURS = 4.5
+
     # La votación se cierra este número de horas antes de la salida de la etapa
     # (con salida ~07:00 Chile, el cierre queda ~06:00 Chile).
     VOTING_CLOSE_HOURS_BEFORE = 1

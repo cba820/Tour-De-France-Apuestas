@@ -166,19 +166,34 @@ def scrape_results(stage_number):
         result["yellow_rider"] = gc[0]
 
     # Maillots verde y montaña: páginas de clasificación dedicadas.
-    result["green_rider"] = _classification_leader(
+    result["green_rider"] = _classification_leader_backfill(
         f"{BASE}/tour-de-france-2026-points-classification/"
-        f"stage-{stage_number}-green-jersey-tdf-2026/",
-        r"points\s+classification")
-    result["polka_rider"] = _classification_leader(
+        "stage-{n}-green-jersey-tdf-2026/",
+        r"points\s+classification", stage_number)
+    result["polka_rider"] = _classification_leader_backfill(
         f"{BASE}/tour-de-france-2026-kom-classification/"
-        f"stage-{stage_number}-polka-dot-tdf-2026/",
-        r"mountains?\s+classification")
+        "stage-{n}-polka-dot-tdf-2026/",
+        r"mountains?\s+classification", stage_number)
     # El maillot blanco (jóvenes) no se publica como lista -> queda para admin.
 
     if not result["first_rider"]:
         return None
     return result
+
+
+def _classification_leader_backfill(url_template, header_pattern, stage_number, max_back=3):
+    """Líder actual de una clasificación con arrastre.
+
+    Algunas etapas (p. ej. llanas) no publican su propia página de montaña. Como
+    el maillot se arrastra, si la página de la etapa N no existe, se intenta la
+    N-1, N-2… (hasta `max_back`) para obtener el líder vigente con nombre completo.
+    `url_template` debe contener «{n}» donde va el número de etapa.
+    """
+    for n in range(stage_number, max(0, stage_number - max_back - 1), -1):
+        leader = _classification_leader(url_template.format(n=n), header_pattern)
+        if leader:
+            return leader
+    return None
 
 
 def _classification_leader(url, header_pattern):

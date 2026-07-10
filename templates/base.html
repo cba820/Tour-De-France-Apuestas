@@ -21,12 +21,15 @@
       </button>
       <div class="collapse navbar-collapse" id="nav">
         {% if current_user.is_authenticated %}
-        <ul class="navbar-nav me-auto">
+        <ul class="navbar-nav me-auto"></ul>
+        <ul class="navbar-nav align-items-lg-center">
           {% if current_user.is_admin %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.panel') }}"><i class="bi bi-gear-fill"></i> Admin</a></li>
+          <li class="nav-item me-3 my-1 my-lg-0">
+            <a class="btn btn-sm btn-warning fw-semibold" href="{{ url_for('admin.panel') }}">
+              <i class="bi bi-gear-fill"></i> Administración
+            </a>
+          </li>
           {% endif %}
-        </ul>
-        <ul class="navbar-nav">
           <li class="nav-item d-flex align-items-center me-3">
             <span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> {{ current_user.total_points }} pts</span>
           </li>

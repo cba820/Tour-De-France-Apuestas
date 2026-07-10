@@ -108,20 +108,8 @@
     </div>
   </div>
 
-  <!-- Columna derecha: favoritos + top ranking -->
+  <!-- Columna derecha: top ranking -->
   <div class="col-lg-4">
-    <div class="card mb-4">
-      <div class="card-header"><i class="bi bi-star-fill text-warning"></i> Favoritos</div>
-      <ul class="list-group list-group-flush">
-        {% for r in riders if r.is_favorite %}
-        <li class="list-group-item d-flex justify-content-between">
-          <span>{{ r.name }}</span>
-          <span class="text-muted small">{{ r.team or '' }}</span>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-
     <div class="card">
       <div class="card-header d-flex justify-content-between">
         <span><i class="bi bi-trophy-fill text-warning"></i> Top 5</span>
@@ -145,17 +133,7 @@
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script>
-  // Dropdown filtrable: escribe para buscar, pero solo se aceptan corredores de la lista.
-  document.querySelectorAll('.rider-select').forEach(function (el) {
-    new TomSelect(el, {
-      create: false,           // no permite texto libre
-      allowEmptyOption: true,
-      maxOptions: null,
-      sortField: { field: 'text', direction: 'asc' }
-    });
-  });
-</script>
+<script src="{{ url_for('static', filename='js/rider-select.js') }}"></script>
 <script>
   const el = document.querySelector('.countdown[data-deadline]');
   if (el) {
