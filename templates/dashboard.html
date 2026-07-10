@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Etapa del día · Predicciones TDF 2026{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block subnav %}{% set active_tab = 'vote' %}{% include '_tabs.html' %}{% endblock %}
+
+{% block content %}
+{% if not stage %}
+  <div class="text-center py-5">
+    <h2>🏁 ¡El Tour ha terminado!</h2>
+    <p class="text-muted">No quedan etapas pendientes. Revisa el <a href="{{ url_for('main.ranking_view') }}">ranking final</a>.</p>
+  </div>
+{% else %}
+<div class="row g-4">
+  <!-- Columna izquierda: etapa + votación -->
+  <div class="col-lg-8">
+    <!-- Hero de la etapa -->
+    <div class="stage-hero p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <span class="stage-badge">ETAPA {{ stage.number }}</span>
+          <span class="badge rounded-pill ms-2 stage-type-{{ stage.stage_type }}"
+                style="background:rgba(255,255,255,.12)">
+            {{ {'flat':'Llana','hills':'Media montaña','mountains':'Montaña','ITT':'Contrarreloj individual','TTT':'Contrarreloj por equipos'}.get(stage.stage_type, stage.stage_type) }}
+          </span>
+          <h3 class="mt-2 mb-0">{{ stage.start_city }} → {{ stage.finish_city }}</h3>
+          <div class="text-white-50"><i class="bi bi-calendar-event"></i> {{ stage.date|fdate }}</div>
+        </div>
+        <div class="text-end">
+          {% if stage.is_open_for_voting() %}
+            <div class="text-white-50 small text-uppercase">Cierra la votación en</div>
+            <div class="countdown fs-4 text-warning" data-deadline="{{ stage.voting_deadline.isoformat() }}">--:--:--</div>
+            <div class="text-white-50" style="font-size:.72rem"><i class="bi bi-clock"></i> {{ stage.voting_deadline|fdatetime }} h · hora Chile</div>
+          {% else %}
+            <span class="badge badge-closed">Votación cerrada</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <img class="profile-img my-3" src="{{ stage.profile_image_url }}"
+           alt="Perfil etapa {{ stage.number }}"
+           onerror="this.style.display='none';document.getElementById('noimg').style.display='block';">
+      <div id="noimg" style="display:none" class="alert alert-secondary">Imagen de perfil no disponible.</div>
+
+      <div class="row g-2">
+        <div class="col-4"><div class="metric"><div class="value">{{ stage.distance_km }} km</div><div class="label">Distancia</div></div></div>
+        <div class="col-4"><div class="metric"><div class="value">{{ '%d m'|format(stage.elevation_m) if stage.elevation_m else '📈' }}</div><div class="label">Desnivel</div></div></div>
+        <div class="col-4"><div class="metric"><div class="value">{{ stage.start_time|fdatetime }}</div><div class="label">Salida · hora Chile</div></div></div>
+      </div>
+    </div>
+
+    <!-- Formulario de votación -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-check2-square"></i> Tu predicción</span>
+        {% if prediction %}<span class="badge bg-success">Voto registrado</span>{% endif %}
+      </div>
+      <div class="card-body">
+        {% if stage.is_open_for_voting() %}
+        <p class="text-muted small">Elige tu ganador (3/2/1 pts si llega 1º/2º/3º) y los líderes de cada maillot (1 pt por acierto). Puedes cambiar tu voto hasta el cierre.</p>
+        <form method="post" action="{{ url_for('main.vote', stage_id=stage.id) }}">
+          <div class="mb-3">
+            <label class="form-label small">🏆 Ganador de la etapa <span class="text-danger">*</span></label>
+            <select name="pick_winner" class="rider-select" required autocomplete="off"
+                    placeholder="Escribe para filtrar y elige un corredor…">
+              <option value="">— Selecciona un corredor —</option>
+              {% for r in riders %}
+              <option value="{{ r.name }}" {{ 'selected' if prediction and prediction.pick_winner == r.name }}>{{ r.name }}{% if r.team %} · {{ r.team }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-3">
+            {% for key, field in [('yellow','pick_yellow'),('green','pick_green'),('polka','pick_polka'),('white','pick_white')] %}
+            {% set j = JERSEYS[key] %}
+            <div class="col-md-6">
+              <label class="form-label small">
+                <span class="jersey-swatch" style="background:{{ j[2] }}"></span> {{ j[0] }} <span class="text-muted">({{ j[1] }})</span>
+              </label>
+              <select name="{{ field }}" class="rider-select" autocomplete="off"
+                      placeholder="Escribe para filtrar…">
+                <option value="">— Sin selección —</option>
+                {% for r in riders %}
+                <option value="{{ r.name }}" {{ 'selected' if prediction and prediction[field] == r.name }}>{{ r.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-tdf mt-4"><i class="bi bi-send-fill"></i> Guardar predicción</button>
+        </form>
+        {% else %}
+          <p class="text-muted"><i class="bi bi-lock-fill"></i> La votación de esta etapa está cerrada.</p>
+          {% if prediction %}
+          <div class="row g-2">
+            <div class="col-12"><div class="jersey-pill">🏆 Ganador: <strong>{{ prediction.pick_winner or '—' }}</strong></div></div>
+            {% for key, field in [('yellow','pick_yellow'),('green','pick_green'),('polka','pick_polka'),('white','pick_white')] %}
+            <div class="col-md-6"><div class="jersey-pill"><span class="jersey-swatch" style="background:{{ JERSEYS[key][2] }}"></span>{{ JERSEYS[key][0] }}: <strong>{{ prediction[field] or '—' }}</strong></div></div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-danger">No registraste predicción para esta etapa.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: favoritos + top ranking -->
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header"><i class="bi bi-star-fill text-warning"></i> Favoritos</div>
+      <ul class="list-group list-group-flush">
+        {% for r in riders if r.is_favorite %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ r.name }}</span>
+          <span class="text-muted small">{{ r.team or '' }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-trophy-fill text-warning"></i> Top 5</span>
+        <a href="{{ url_for('main.ranking_view') }}" class="small">Ver todo</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for row in top_ranking %}
+        <li class="list-group-item d-flex justify-content-between {{ 'rank-me' if row.user.id == current_user.id }}">
+          <span><span class="rank-pos rank-{{ row.position }}">{{ row.position }}.</span> {{ row.user.username }}</span>
+          <span class="badge bg-warning text-dark">{{ row.points }} pts</span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">Aún no hay puntuaciones.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+  // Dropdown filtrable: escribe para buscar, pero solo se aceptan corredores de la lista.
+  document.querySelectorAll('.rider-select').forEach(function (el) {
+    new TomSelect(el, {
+      create: false,           // no permite texto libre
+      allowEmptyOption: true,
+      maxOptions: null,
+      sortField: { field: 'text', direction: 'asc' }
+    });
+  });
+</script>
+<script>
+  const el = document.querySelector('.countdown[data-deadline]');
+  if (el) {
+    const deadline = new Date(el.dataset.deadline).getTime();
+    const tick = () => {
+      const diff = deadline - Date.now();
+      if (diff <= 0) { el.textContent = 'CERRADA'; el.classList.remove('text-warning'); return; }
+      const h = Math.floor(diff / 3.6e6);
+      const m = Math.floor((diff % 3.6e6) / 6e4);
+      const s = Math.floor((diff % 6e4) / 1e3);
+      el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    };
+    tick(); setInterval(tick, 1000);
+  }
+</script>
+{% endblock %}

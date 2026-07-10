@@ -1,0 +1,29 @@
+[Unit]
+Description=Predicciones TDF 2026 (Flask + gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/TDF_apuestas
+
+# --- Configuración: CAMBIA estos valores ---
+Environment=SECRET_KEY=pon-aqui-una-clave-larga-y-secreta
+Environment=ADMIN_USERNAME=admin
+Environment=ADMIN_PASSWORD=cambia-esta-clave-admin
+Environment=ADMIN_EMAIL=admin@tdf.local
+
+# Permite escuchar en el puerto 80 sin ser root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# 1 solo worker (obligatorio por el scheduler interno) + hilos para atender
+# a varios amigos a la vez.
+ExecStart=/home/ec2-user/TDF_apuestas/.venv/bin/gunicorn \
+    --workers 1 --threads 4 --timeout 120 \
+    --bind 0.0.0.0:80 wsgi:app
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

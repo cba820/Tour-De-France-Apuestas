@@ -1,0 +1,50 @@
+name: Deploy to EC2
+
+# Despliega automáticamente al hacer push a main.
+# También se puede lanzar a mano desde la pestaña Actions (workflow_dispatch).
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Evita despliegues solapados si se hacen varios push seguidos.
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preparar clave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Desplegar en el servidor
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=accept-new \
+              "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" bash -s <<'EOF'
+          set -e
+          cd /home/ec2-user/TDF_apuestas
+
+          echo "==> Respaldo de la base de datos"
+          [ -f instance/tdf.db ] && cp instance/tdf.db "instance/tdf.db.bak" || true
+
+          echo "==> Trayendo el código nuevo"
+          git fetch --all --prune
+          git reset --hard origin/main
+
+          echo "==> Instalando dependencias"
+          if [ -d .venv ]; then
+            . .venv/bin/activate
+          fi
+          pip install -r requirements.txt
+
+          echo "==> Reiniciando el servicio"
+          sudo systemctl restart tdf
+          echo "==> Deploy completado"
+          EOF

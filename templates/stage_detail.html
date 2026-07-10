@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Etapa {{ stage.number }} · Predicciones TDF 2026{% endblock %}
+{% block subnav %}{% set active_tab = 'past' if stage.is_finished else 'upcoming' %}{% include '_tabs.html' %}{% endblock %}
+{% block content %}
+<a href="{{ url_for('main.past') if stage.is_finished else url_for('main.upcoming') }}" class="small text-muted">&larr; Volver</a>
+<div class="d-flex justify-content-between align-items-center flex-wrap mt-1 mb-3">
+  <h2 class="mb-0">Etapa {{ stage.number }}: {{ stage.start_city }} → {{ stage.finish_city }}</h2>
+  {% if stage.is_finished %}<span class="badge badge-finished fs-6">Finalizada</span>
+  {% else %}<span class="badge badge-open fs-6">Pendiente</span>{% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card mb-4">
+      <img src="{{ stage.profile_image_url }}" class="card-img-top p-2" style="background:#fff" onerror="this.style.display='none'">
+      <div class="card-body">
+        <div class="text-muted small">{{ stage.date|fdate }} · {{ stage.stage_type }}</div>
+        <div class="fs-5 fw-bold">{{ stage.distance_km }} km</div>
+      </div>
+    </div>
+
+    {% if stage.result %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-flag-fill"></i> Resultado oficial</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">🥇 <strong>{{ stage.result.first_rider or '—' }}</strong></li>
+        <li class="list-group-item">🥈 {{ stage.result.second_rider or '—' }}</li>
+        <li class="list-group-item">🥉 {{ stage.result.third_rider or '—' }}</li>
+      </ul>
+      <div class="card-body">
+        {% for key in ['yellow','green','polka','white'] %}
+        <div class="jersey-pill mb-1 me-1"><span class="jersey-swatch" style="background:{{ JERSEYS[key][2] }}"></span>
+          {{ JERSEYS[key][1] }}: <strong>{{ stage.result[('%s_rider'|format(key))] or '—' }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people-fill"></i> Predicciones de los participantes</div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>Participante</th><th>Ganador</th><th>🟡</th><th>🟢</th><th>🔴</th><th>⚪</th><th class="text-end">Pts</th></tr>
+          </thead>
+          <tbody>
+            {% for p in predictions %}
+            <tr class="{{ 'rank-me' if p.user.id == current_user.id }}">
+              <td>{{ p.user.username }}</td>
+              <td>{{ p.pick_winner or '—' }}</td>
+              <td class="small">{{ p.pick_yellow or '—' }}</td>
+              <td class="small">{{ p.pick_green or '—' }}</td>
+              <td class="small">{{ p.pick_polka or '—' }}</td>
+              <td class="small">{{ p.pick_white or '—' }}</td>
+              <td class="text-end"><span class="badge bg-warning text-dark">{{ p.points if stage.is_finished else '·' }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-muted text-center py-3">Nadie ha votado todavía esta etapa.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if not stage.is_finished %}
+      <div class="card-body text-muted small"><i class="bi bi-info-circle"></i> Los puntos se muestran cuando la etapa finalice.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

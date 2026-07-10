@@ -1,0 +1,18 @@
+<div class="view-tabs-bar">
+  <div class="container">
+    <div class="view-tabs">
+      <a href="{{ url_for('main.dashboard') }}" class="view-tab {{ 'active' if active_tab == 'vote' }}">
+        <i class="bi bi-flag-fill"></i> Votación
+      </a>
+      <a href="{{ url_for('main.past') }}" class="view-tab {{ 'active' if active_tab == 'past' }}">
+        <i class="bi bi-check2-circle"></i> Etapas pasadas
+      </a>
+      <a href="{{ url_for('main.upcoming') }}" class="view-tab {{ 'active' if active_tab == 'upcoming' }}">
+        <i class="bi bi-lock-fill"></i> Próximas etapas
+      </a>
+      <a href="{{ url_for('main.ranking_view') }}" class="view-tab {{ 'active' if active_tab == 'ranking' }}">
+        <i class="bi bi-trophy-fill"></i> Posiciones
+      </a>
+    </div>
+  </div>
+</div>

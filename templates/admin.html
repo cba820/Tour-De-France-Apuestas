@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Admin · Predicciones TDF 2026{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+  <h2 class="mb-0"><i class="bi bi-gear-fill"></i> Panel de administración</h2>
+  <form method="post" action="{{ url_for('admin.force_update') }}">
+    <button class="btn btn-tdf"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
+  </form>
+</div>
+<p class="text-muted small">
+  El botón intenta scrapear los resultados de las etapas ya disputadas y recalcula puntos y ranking.
+  Si el scraping falla, ingresa los resultados manualmente abajo. La votación de cada etapa se cierra
+  1 h antes de la hora de salida.
+</p>
+
+<div class="accordion" id="stagesAcc">
+  {% for s in stages %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#s{{ s.number }}">
+        <span class="me-2 fw-bold">Etapa {{ s.number }}</span>
+        {{ s.start_city }} → {{ s.finish_city }} · {{ s.date|fdate }}
+        {% if s.is_finished %}<span class="badge badge-finished ms-2">Finalizada</span>
+        {% elif s.is_open_for_voting() %}<span class="badge badge-open ms-2">Votación abierta</span>
+        {% else %}<span class="badge badge-closed ms-2">Cerrada / próxima</span>{% endif %}
+      </button>
+    </h2>
+    <div id="s{{ s.number }}" class="accordion-collapse collapse" data-bs-parent="#stagesAcc">
+      <div class="accordion-body">
+        <form method="post" action="{{ url_for('admin.edit_stage', number=s.number) }}">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small">Hora de salida (cierre = 1h antes)</label>
+              <input type="datetime-local" name="start_time" class="form-control form-control-sm"
+                     value="{{ s.start_time.strftime('%Y-%m-%dT%H:%M') }}">
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label small">🥇 1º</label><input name="first_rider" class="form-control form-control-sm" value="{{ s.result.first_rider if s.result else '' }}"></div>
+            <div class="col-md-4"><label class="form-label small">🥈 2º</label><input name="second_rider" class="form-control form-control-sm" value="{{ s.result.second_rider if s.result else '' }}"></div>
+            <div class="col-md-4"><label class="form-label small">🥉 3º</label><input name="third_rider" class="form-control form-control-sm" value="{{ s.result.third_rider if s.result else '' }}"></div>
+            <div class="col-md-3"><label class="form-label small">🟡 Amarillo</label><input name="yellow_rider" class="form-control form-control-sm" value="{{ s.result.yellow_rider if s.result else '' }}"></div>
+            <div class="col-md-3"><label class="form-label small">🟢 Verde</label><input name="green_rider" class="form-control form-control-sm" value="{{ s.result.green_rider if s.result else '' }}"></div>
+            <div class="col-md-3"><label class="form-label small">🔴 Puntos</label><input name="polka_rider" class="form-control form-control-sm" value="{{ s.result.polka_rider if s.result else '' }}"></div>
+            <div class="col-md-3"><label class="form-label small">⚪ Blanco</label><input name="white_rider" class="form-control form-control-sm" value="{{ s.result.white_rider if s.result else '' }}"></div>
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button type="submit" name="save_results" value="1" class="btn btn-sm btn-tdf">Guardar resultados y cerrar etapa</button>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Guardar solo hora</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

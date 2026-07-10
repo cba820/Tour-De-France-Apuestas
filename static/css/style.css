@@ -1,0 +1,160 @@
+:root {
+  --tdf-yellow: #ffd60a;
+  --tdf-yellow-dark: #f4c20d;
+  --tdf-dark: #14110f;
+  --tdf-ink: #1d2733;
+  --tdf-red: #e5383b;
+  --tdf-green: #38b000;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #f4f5f7;
+  color: var(--tdf-ink);
+}
+
+h1, h2, h3, h4, h5, .navbar-brand, .display-6 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* ---- Navbar ---- */
+.tdf-navbar {
+  background: linear-gradient(90deg, var(--tdf-dark) 0%, #2b2620 100%);
+  border-bottom: 3px solid var(--tdf-yellow);
+}
+.brand-dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  background: var(--tdf-yellow);
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+/* ---- Barra de pestañas (cambio de vista) ---- */
+.view-tabs-bar {
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+  box-shadow: 0 2px 10px rgba(20,17,15,.04);
+  padding: .7rem 0;
+}
+.view-tabs {
+  display: flex;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem 1.05rem;
+  border-radius: 999px;
+  border: 2px solid #e7e7e7;
+  background: #fff;
+  color: #33404d;
+  font-weight: 600;
+  font-size: .92rem;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.view-tab:hover {
+  border-color: var(--tdf-yellow);
+  color: #000;
+  transform: translateY(-1px);
+}
+.view-tab.active {
+  background: var(--tdf-yellow);
+  border-color: var(--tdf-yellow);
+  color: #000;
+  box-shadow: 0 4px 12px rgba(255,214,10,.45);
+}
+
+/* ---- Hero / stage card ---- */
+.stage-hero {
+  background: linear-gradient(135deg, var(--tdf-dark), #37322b);
+  color: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.06);
+}
+.stage-hero .stage-badge {
+  background: var(--tdf-yellow);
+  color: #000;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: .25rem .9rem;
+}
+.profile-img {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.metric {
+  background: rgba(255,255,255,.06);
+  border-radius: 12px;
+  padding: .75rem 1rem;
+}
+.metric .value { font-size: 1.4rem; font-weight: 800; font-family: 'Montserrat'; }
+.metric .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
+
+/* ---- Countdown ---- */
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-family: 'Montserrat';
+}
+
+/* ---- Cards ---- */
+.card { border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(20,17,15,.06); }
+.card-header { background: #fff; border-bottom: 2px solid #f0f0f0; font-weight: 700; border-radius: 16px 16px 0 0 !important; }
+
+/* ---- Jersey chips ---- */
+.jersey-pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  border-radius: 10px; padding: .3rem .6rem; font-weight: 600; font-size: .85rem;
+  border: 1px solid #e5e5e5; background: #fff;
+}
+.jersey-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); }
+
+/* ---- Ranking ---- */
+.rank-pos { font-family: 'Montserrat'; font-weight: 800; width: 44px; }
+.rank-1 { color: #d4af37; }
+.rank-2 { color: #9aa0a6; }
+.rank-3 { color: #cd7f32; }
+.rank-me { background: #fff8e1 !important; }
+.medal { font-size: 1.2rem; }
+
+/* ---- Etapas bloqueadas ---- */
+.stage-locked { opacity: .92; }
+.stage-locked img { filter: grayscale(35%); }
+.lock-overlay {
+  position: absolute;
+  top: 8px; right: 12px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20,17,15,.75);
+  color: var(--tdf-yellow);
+  border-radius: 50%;
+  font-size: 1rem;
+}
+
+/* ---- Status badges ---- */
+.badge-open { background: var(--tdf-green); }
+.badge-closed { background: #6c757d; }
+.badge-finished { background: var(--tdf-ink); }
+
+/* ---- Buttons ---- */
+.btn-tdf {
+  background: var(--tdf-yellow);
+  border: none; color: #000; font-weight: 700;
+}
+.btn-tdf:hover { background: var(--tdf-yellow-dark); color: #000; }
+
+.stage-type-mountains { color: var(--tdf-red); }
+.stage-type-flat { color: var(--tdf-green); }
+.stage-type-hills { color: #d97706; }
+.stage-type-ITT, .stage-type-TTT { color: #3b82f6; }
+
+.form-label.small { font-weight: 600; }
+a { text-decoration: none; }

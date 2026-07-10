@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión · Predicciones TDF 2026{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="text-center mb-4">
+      <div class="display-6 fw-bold">🚴 Predicciones DRAFT <span class="text-warning bg-dark px-2 rounded">TDF 2026</span></div>
+      <p class="text-muted">Predice los ganadores de cada etapa y compite con tus amigos.</p>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-box-arrow-in-right"></i> Iniciar sesión</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label small">Usuario o email</label>
+            <input type="text" name="identifier" class="form-control" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Contraseña</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-tdf w-100">Entrar</button>
+        </form>
+      </div>
+    </div>
+    <p class="text-center mt-3 text-muted">
+      ¿No tienes cuenta? <a href="{{ url_for('auth.register') }}">Créala aquí</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

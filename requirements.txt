@@ -1,0 +1,10 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+requests==2.32.3
+beautifulsoup4==4.12.3
+APScheduler==3.10.4
+tzdata==2026.1
+# Servidor WSGI de producción. El marcador evita instalarlo en Windows (dev local),
+# donde gunicorn no funciona; se instala solo en el servidor Linux (AWS EC2).
+gunicorn==22.0.0 ; sys_platform != "win32"
