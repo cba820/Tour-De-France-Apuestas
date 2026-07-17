@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Estadísticas · Predicciones TDF 2026{% endblock %}
+{% block subnav %}{% set active_tab = 'stats' %}{% include '_tabs.html' %}{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+  <h2 class="mb-0">📊 Tus estadísticas</h2>
+  <p class="text-muted mb-0">Tu rendimiento en el Tour, {{ current_user.username }}</p>
+</div>
+
+<!-- Tarjetas de métricas -->
+<div class="row g-2 g-md-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="metric">
+      <div class="value">
+        {% if stats.position %}{{ stats.position }}<span class="text-muted fs-6">/{{ stats.total_players }}</span>{% else %}—{% endif %}
+      </div>
+      <div class="label">Posición</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value text-warning">{{ stats.points }}</div><div class="label">Puntos totales</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.played }}</div><div class="label">Etapas jugadas</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.streak }} {% if stats.streak >= 3 %}🔥{% endif %}</div><div class="label">Racha actual</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.exact_winners }}</div><div class="label">Ganadores exactos</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.podiums }}</div><div class="label">Podios acertados</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.jersey_hits }}</div><div class="label">Maillots acertados</div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="metric"><div class="value">{{ stats.best_stage }}</div><div class="label">Mejor etapa (pts)</div></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Gráfico de evolución -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-graph-up"></i> Evolución de puntos</span>
+        <span class="small text-muted">
+          <span style="color:#ffd60a">━</span> Tú &nbsp;
+          <span style="color:#9aa0a6">━</span> Resto
+        </span>
+      </div>
+      <div class="card-body">
+        {% if progression.labels %}
+        <div style="position:relative;height:260px">
+          <canvas id="progressChart"></canvas>
+        </div>
+        <p class="text-muted small mb-0 mt-2">Tu media: <strong>{{ stats.avg }}</strong> pts/etapa ·
+          media del grupo: <strong>{{ stats.group_avg }}</strong></p>
+        {% else %}
+        <p class="text-muted text-center py-5 mb-0">Aún no hay etapas finalizadas para graficar.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Récords del grupo -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-award"></i> Récords del grupo</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">
+          <div class="small text-muted">🔝 Mejor etapa individual</div>
+          {% if records.best_record %}
+          <strong>{{ records.best_record.username }}</strong> · {{ records.best_record.points }} pts
+          <span class="text-muted">(Etapa {{ records.best_record.stage }})</span>
+          {% else %}<span class="text-muted">Sin datos aún</span>{% endif %}
+        </li>
+        <li class="list-group-item">
+          <div class="small text-muted">🚴 Corredor más elegido como ganador</div>
+          {% if records.top_pick %}
+          <strong>{{ records.top_pick.name }}</strong>
+          <span class="text-muted">({{ records.top_pick.count }} veces)</span>
+          {% else %}<span class="text-muted">Sin datos aún</span>{% endif %}
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Insignias -->
+<h4 class="mt-5 mb-3"><i class="bi bi-patch-check-fill text-warning"></i> Logros</h4>
+<div class="row g-2 g-md-3">
+  {% for b in badges %}
+  <div class="col-4 col-md-3 col-lg-3">
+    <div class="card text-center h-100 {{ '' if b.earned else 'opacity-50' }}"
+         title="{{ b.description }}">
+      <div class="card-body p-2 p-md-3">
+        <div style="font-size:2rem;line-height:1;{{ '' if b.earned else 'filter:grayscale(1)' }}">{{ b.icon }}</div>
+        <div class="fw-semibold small mt-2">{{ b.name }}</div>
+        <div class="text-muted mt-1" style="font-size:.72rem">{{ b.description }}</div>
+        {% if b.earned %}
+        <span class="badge bg-success mt-2"><i class="bi bi-check-lg"></i> Conseguido</span>
+        {% else %}
+        <span class="badge bg-secondary mt-2">Bloqueado</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if progression.labels %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const PROG = {{ progression|tojson }};
+  const ME = {{ current_user.id }};
+  const datasets = PROG.datasets.map(d => {
+    const mine = d.user_id === ME;
+    return {
+      label: d.username,
+      data: d.data,
+      borderColor: mine ? '#ffd60a' : 'rgba(154,160,166,.35)',
+      backgroundColor: mine ? '#ffd60a' : 'rgba(154,160,166,.35)',
+      borderWidth: mine ? 3 : 1,
+      pointRadius: mine ? 3 : 0,
+      pointHoverRadius: mine ? 5 : 3,
+      tension: 0.25,
+      order: mine ? 0 : 1,
+    };
+  });
+  new Chart(document.getElementById('progressChart'), {
+    type: 'line',
+    data: { labels: PROG.labels.map(n => 'E' + n), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => 'Etapa ' + items[0].label.slice(1),
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} pts`,
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+      },
+    },
+  });
+</script>
+{% endif %}
+{% endblock %}

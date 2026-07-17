@@ -12,7 +12,8 @@ from email.message import EmailMessage
 from sqlalchemy.exc import IntegrityError
 
 from .extensions import db
-from .models import Prediction, ReminderLog, Stage, User
+from .models import Prediction, ReminderLog, Stage, StageRecapLog, User
+from .scoring import ranking
 from .timeutils import now_local
 
 # Timeout de la conexión SMTP (segundos). Evita que una conexión colgada congele
@@ -165,3 +166,111 @@ def send_vote_reminders(app, test_only=False):
     """Punto de entrada: envuelve la lógica en un app_context (para el scheduler)."""
     with app.app_context():
         return _run_reminders(app, app.config, test_only=test_only)
+
+
+# ---------------------------------------------------------------------------
+# Resumen post-etapa
+# ---------------------------------------------------------------------------
+
+def _build_recap(stage, cfg, user, pred, total_points, position, n_players):
+    """Devuelve (asunto, html, texto) del resumen de una etapa para un usuario."""
+    r = stage.result
+    url = (_cfg(cfg, "SITE_URL") or "").rstrip("/")
+    pos_txt = f"{position}/{n_players}" if position else "—"
+
+    if pred is not None:
+        earned = f"Sacaste <strong>{pred.points}</strong> punto(s) en esta etapa."
+        earned_txt = f"Sacaste {pred.points} punto(s) en esta etapa."
+    else:
+        earned = "No registraste predicción para esta etapa."
+        earned_txt = "No registraste predicción para esta etapa."
+
+    podium = (f"🥇 {r.first_rider or '—'} · 🥈 {r.second_rider or '—'} · "
+              f"🥉 {r.third_rider or '—'}")
+    jerseys = (f"🟡 {r.yellow_rider or '—'} · 🟢 {r.green_rider or '—'} · "
+               f"🔴 {r.polka_rider or '—'} · ⚪ {r.white_rider or '—'}")
+
+    subject = f"🏁 Resultados Etapa {stage.number} — {earned_txt}"
+    text = (
+        f"¡Hola, {user.username}!\n\n"
+        f"Terminó la {stage.title}.\n\n"
+        f"Podio: {podium}\n"
+        f"Maillots: {jerseys}\n\n"
+        f"{earned_txt}\n"
+        f"Llevas {total_points} puntos en total y vas en la posición {pos_txt}.\n\n"
+        f"Ver el ranking: {url}\n\n"
+        f"¡Nos vemos en la próxima etapa! 🚴\n"
+    )
+    html = (
+        f"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#212529\">"
+        f"<p>¡Hola, <strong>{user.username}</strong>!</p>"
+        f"<p>Terminó la <strong>{stage.title}</strong>.</p>"
+        f"<p style=\"margin:4px 0\"><strong>Podio:</strong> {podium}</p>"
+        f"<p style=\"margin:4px 0\"><strong>Maillots:</strong> {jerseys}</p>"
+        f"<p style=\"margin-top:14px\">{earned}</p>"
+        f"<p>Llevas <strong>{total_points}</strong> puntos en total y vas en la posición "
+        f"<strong>{pos_txt}</strong>.</p>"
+        f"<p><a href=\"{url}\" "
+        f"style=\"display:inline-block;padding:10px 18px;background:#ffd60a;"
+        f"color:#212529;text-decoration:none;border-radius:6px;font-weight:bold\">"
+        f"Ver el ranking</a></p>"
+        f"<p style=\"color:#6c757d;font-size:13px\">¡Nos vemos en la próxima etapa! 🚴</p>"
+        f"</div>"
+    )
+    return subject, html, text
+
+
+def send_stage_recap(app, stage_id):
+    """Envía a todos los usuarios el resumen de una etapa recién cerrada.
+
+    Se llama tras cerrar y puntuar una etapa. Reserva el registro ANTES de enviar
+    (guard anti-duplicado y anti-carrera admin/scheduler): si otro hilo ya lo
+    reclamó, no reenvía. Cada correo es personalizado (puntos y posición del
+    usuario). No hace nada si el correo está deshabilitado.
+    """
+    with app.app_context():
+        cfg = app.config
+        if not mail_enabled(cfg):
+            return "Correo deshabilitado; no se envió resumen."
+
+        stage = db.session.get(Stage, stage_id)
+        if stage is None or not stage.is_finished or stage.result is None:
+            return "Etapa no válida para resumen."
+
+        # Reservar primero: si ya existe, otro proceso lo envió (o lo está enviando).
+        db.session.add(StageRecapLog(stage_id=stage.id))
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return f"El resumen de la Etapa {stage.number} ya se había enviado."
+
+        rows = ranking()
+        info = {row["user"].id: (row["points"], row["position"]) for row in rows}
+        n_players = len(rows)
+        preds = {p.user_id: p
+                 for p in Prediction.query.filter_by(stage_id=stage.id).all()}
+        users = User.query.order_by(User.username).all()
+
+        sent, failed = 0, []
+        smtp = _open_smtp(cfg)
+        try:
+            for user in users:
+                total, position = info.get(user.id, (0, None))
+                subject, html, text = _build_recap(
+                    stage, cfg, user, preds.get(user.id), total, position, n_players)
+                try:
+                    send_email(smtp, cfg, user.email, subject, html, text)
+                    sent += 1
+                except Exception as exc:  # noqa: BLE001
+                    failed.append(f"{user.email} ({exc})")
+        finally:
+            try:
+                smtp.quit()
+            except Exception:  # noqa: BLE001
+                pass
+
+        msg = f"Resumen Etapa {stage.number}: {sent} correo(s) enviado(s)."
+        if failed:
+            msg += f" Fallaron {len(failed)}: {', '.join(failed)}"
+        return msg

@@ -8,6 +8,21 @@ from .timeutils import now_local
 from . import scraper, scoring
 
 
+def _notify_recap(stage_id):
+    """Dispara el correo de resumen de una etapa recién cerrada.
+
+    El envío nunca debe romper el scraping/scoring, así que se aísla en try/except.
+    Ambos callers (admin y scheduler) corren dentro de un app/request context, así
+    que current_app resuelve correctamente.
+    """
+    from flask import current_app
+    from .mailer import send_stage_recap
+    try:
+        send_stage_recap(current_app._get_current_object(), stage_id)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[recap] Error al enviar resumen de la etapa {stage_id}: {exc}")
+
+
 def update_results(force=False):
     """Busca resultados de etapas ya disputadas y sin cerrar; recalcula puntos.
 
@@ -37,6 +52,7 @@ def update_results(force=False):
         db.session.commit()
         scoring.recompute_stage_points(stage)
         updated.append(stage.number)
+        _notify_recap(stage.id)
 
     # Recalcular todo por si hubo ediciones manuales.
     scoring.recompute_all_points()
@@ -56,4 +72,5 @@ def close_stage_manual(stage, result_data):
     stage.is_finished = True
     db.session.commit()
     scoring.recompute_stage_points(stage)
+    _notify_recap(stage.id)
     return f"Etapa #{stage.number} cerrada y puntos recalculados."

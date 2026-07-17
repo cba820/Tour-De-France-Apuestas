@@ -104,3 +104,16 @@ def stage_detail(number):
 @login_required
 def ranking_view():
     return render_template("ranking.html", rows=ranking())
+
+
+@bp.route("/stats")
+@login_required
+def stats_view():
+    from .stats import group_records, progression, user_badges, user_stats
+    return render_template(
+        "stats.html",
+        stats=user_stats(current_user),
+        badges=user_badges(current_user),
+        progression=progression(),
+        records=group_records(),
+    )

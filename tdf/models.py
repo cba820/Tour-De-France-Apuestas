@@ -143,3 +143,17 @@ class ReminderLog(db.Model):
     stage_id = db.Column(db.Integer, db.ForeignKey("stages.id"),
                          unique=True, nullable=False)
     sent_at = db.Column(db.DateTime, default=now_local)
+
+
+class StageRecapLog(db.Model):
+    """Registro de resúmenes post-etapa ya enviados (uno por etapa).
+
+    Igual que ReminderLog: guardia anti-duplicados para el correo de resumen que
+    se manda al cerrar una etapa. Tabla nueva, la crea db.create_all() sin migración.
+    """
+    __tablename__ = "stage_recap_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    stage_id = db.Column(db.Integer, db.ForeignKey("stages.id"),
+                         unique=True, nullable=False)
+    sent_at = db.Column(db.DateTime, default=now_local)
