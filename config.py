@@ -41,3 +41,15 @@ class Config:
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@tdf.local")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin1234")
+
+    # Emails que siempre deben tener rol de administrador. Cualquier cuenta con
+    # uno de estos emails se promueve a admin automáticamente (al arrancar la app
+    # y al registrarse/iniciar sesión), sin tener que cambiar de cuenta a mano.
+    # Configurable con la variable de entorno ADMIN_EMAILS (separados por comas).
+    ADMIN_EMAILS = [
+        e.strip().lower()
+        for e in os.environ.get(
+            "ADMIN_EMAILS", "sebastianorellana820@gmail.com"
+        ).split(",")
+        if e.strip()
+    ]

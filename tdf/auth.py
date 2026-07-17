@@ -1,11 +1,19 @@
 """Blueprint de autenticación: registro, login, logout."""
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from .extensions import db
 from .models import User
 
 bp = Blueprint("auth", __name__)
+
+
+def _apply_admin_email(user):
+    """Marca al usuario como admin si su email está en ADMIN_EMAILS."""
+    admin_emails = current_app.config.get("ADMIN_EMAILS", [])
+    if user.email in admin_emails and not user.is_admin:
+        user.is_admin = True
+        db.session.commit()
 
 
 @bp.route("/register", methods=["GET", "POST"])
@@ -42,6 +50,7 @@ def register():
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
+        _apply_admin_email(user)
         login_user(user)
         flash(f"¡Bienvenido, {username}! Tu cuenta ha sido creada.", "success")
         return redirect(url_for("main.dashboard"))
@@ -60,6 +69,7 @@ def login():
         user = (User.query.filter_by(username=identifier).first()
                 or User.query.filter_by(email=identifier.lower()).first())
         if user and user.check_password(password):
+            _apply_admin_email(user)
             login_user(user, remember=True)
             flash(f"Sesión iniciada. ¡A por los puntos, {user.username}!", "success")
             next_page = request.args.get("next")

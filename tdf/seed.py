@@ -152,8 +152,28 @@ def seed_admin(config):
     print(f"[seed] Admin creado: {config.ADMIN_USERNAME} / {config.ADMIN_PASSWORD}")
 
 
+def promote_admins(config):
+    """Promueve a admin cualquier cuenta cuyo email esté en config.ADMIN_EMAILS.
+
+    Idempotente: se ejecuta en cada arranque, así estas cuentas siempre tienen
+    rol de administrador aunque la base se recree o se registren más tarde.
+    """
+    emails = getattr(config, "ADMIN_EMAILS", []) or []
+    if not emails:
+        return
+    promoted = []
+    for user in User.query.filter(User.email.in_(emails)).all():
+        if not user.is_admin:
+            user.is_admin = True
+            promoted.append(user.email)
+    if promoted:
+        db.session.commit()
+        print(f"[seed] Promovidos a admin: {', '.join(promoted)}")
+
+
 def run_seed(config):
     seed_stages()
     seed_results()
     seed_favorites()
     seed_admin(config)
+    promote_admins(config)
