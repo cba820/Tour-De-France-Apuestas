@@ -13,6 +13,18 @@ Environment=ADMIN_USERNAME=admin
 Environment=ADMIN_PASSWORD=cambia-esta-clave-admin
 Environment=ADMIN_EMAIL=admin@tdf.local
 
+# --- Recordatorios de votación por email (opcional) ---
+# Usa una cuenta Gmail con verificación en 2 pasos y una "App Password" de 16
+# caracteres (NO la contraseña normal). Si dejas MAIL_USERNAME/MAIL_PASSWORD
+# vacíos, la función de recordatorios queda deshabilitada.
+Environment=MAIL_USERNAME=sebastianorellana820@gmail.com
+Environment=MAIL_PASSWORD=pon-aqui-la-app-password-de-gmail
+Environment=MAIL_FROM=sebastianorellana820@gmail.com
+Environment=SITE_URL=http://ec2-18-221-241-6.us-east-2.compute.amazonaws.com
+# Hora (Chile) del recordatorio diario. Por defecto 20:00.
+Environment=REMINDER_HOUR=20
+Environment=REMINDER_MINUTE=0
+
 # Permite escuchar en el puerto 80 sin ser root.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 

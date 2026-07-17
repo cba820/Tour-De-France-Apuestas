@@ -128,3 +128,18 @@ class Prediction(db.Model):
 
     points = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=now_local)
+
+
+class ReminderLog(db.Model):
+    """Registro de recordatorios de votación ya enviados (uno por etapa).
+
+    Sirve de guardia anti-duplicados: si existe una fila para la etapa, el
+    recordatorio ya se envió y no se vuelve a mandar. Es una tabla nueva, así que
+    db.create_all() la crea automáticamente sin necesidad de migración.
+    """
+    __tablename__ = "reminder_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    stage_id = db.Column(db.Integer, db.ForeignKey("stages.id"),
+                         unique=True, nullable=False)
+    sent_at = db.Column(db.DateTime, default=now_local)

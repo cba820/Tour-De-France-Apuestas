@@ -1,8 +1,8 @@
 """Blueprint de administración: forzar actualización y editar resultados."""
 from functools import wraps
 
-from flask import (Blueprint, abort, flash, redirect, render_template,
-                   request, url_for)
+from flask import (Blueprint, abort, current_app, flash, redirect,
+                   render_template, request, url_for)
 from flask_login import current_user, login_required
 
 from datetime import timedelta
@@ -51,6 +51,25 @@ def force_update():
         flash(message, "success")
     except Exception as exc:  # noqa: BLE001
         flash(f"Error al actualizar: {exc}", "danger")
+    return redirect(url_for("admin.panel"))
+
+
+@bp.route("/send-reminders", methods=["POST"])
+@admin_required
+def send_reminders():
+    """Envía los recordatorios de votación a mano.
+
+    Con test=1 manda el correo solo al admin (y no registra el envío), para poder
+    verificar la entregabilidad sin molestar a los participantes.
+    """
+    from .mailer import send_vote_reminders
+    test = bool(request.form.get("test"))
+    try:
+        message = send_vote_reminders(current_app._get_current_object(),
+                                      test_only=test)
+        flash(message, "success")
+    except Exception as exc:  # noqa: BLE001
+        flash(f"Error al enviar recordatorios: {exc}", "danger")
     return redirect(url_for("admin.panel"))
 
 

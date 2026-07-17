@@ -53,3 +53,22 @@ class Config:
         ).split(",")
         if e.strip()
     ]
+
+    # --- Recordatorios de votación por email ---
+    # Envío por SMTP (Gmail por defecto) autenticado con una App Password.
+    # La función queda deshabilitada si MAIL_USERNAME o MAIL_PASSWORD están vacíos.
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "1") in ("1", "true", "yes")
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")   # p.ej. sebastianorellana820@gmail.com
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")   # App Password de Google (16 caracteres)
+    MAIL_FROM = os.environ.get("MAIL_FROM")           # remitente; por defecto = MAIL_USERNAME
+
+    # Hora (Chile) a la que se envía el recordatorio diario de votación. A las 20:00
+    # del día anterior, la votación de la etapa de mañana está abierta (abre 00:00 del
+    # día anterior, cierra ~06:00 del día de la etapa).
+    REMINDER_HOUR = int(os.environ.get("REMINDER_HOUR", 20))
+    REMINDER_MINUTE = int(os.environ.get("REMINDER_MINUTE", 0))
+
+    # URL pública del sitio, usada para el enlace dentro del correo.
+    SITE_URL = os.environ.get("SITE_URL", "http://localhost")

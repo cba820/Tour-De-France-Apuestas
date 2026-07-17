@@ -110,6 +110,28 @@ def _start_scheduler(app, config_class):
         misfire_grace_time=300,
         coalesce=True,
     )
+
+    # Recordatorio diario de votación por email (solo si hay credenciales SMTP).
+    from .mailer import mail_enabled, send_vote_reminders
+    if mail_enabled(config_class):
+        scheduler.add_job(
+            lambda: send_vote_reminders(app),
+            "cron",
+            hour=config_class.REMINDER_HOUR,
+            minute=config_class.REMINDER_MINUTE,
+            id="vote_reminder",
+            replace_existing=True,
+            max_instances=1,
+            misfire_grace_time=3600,
+            coalesce=True,
+        )
+        print(f"[scheduler] Recordatorio de votación a las "
+              f"{config_class.REMINDER_HOUR:02d}:{config_class.REMINDER_MINUTE:02d} "
+              f"· {config_class.TIMEZONE}.")
+    else:
+        print("[scheduler] Recordatorios por email deshabilitados "
+              "(faltan MAIL_USERNAME/MAIL_PASSWORD).")
+
     scheduler.start()
     print(f"[scheduler] Poller de resultados cada {interval} min "
           f"(intenta desde salida + {duration} h) · {config_class.TIMEZONE}.")

@@ -34,6 +34,18 @@
     <form method="post" action="{{ url_for('admin.force_update') }}">
       <button class="btn btn-tdf"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
     </form>
+    <form method="post" action="{{ url_for('admin.send_reminders') }}">
+      <input type="hidden" name="test" value="1">
+      <button class="btn btn-outline-secondary" type="submit">
+        <i class="bi bi-envelope"></i> Enviar correo de prueba (a mí)
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('admin.send_reminders') }}"
+          onsubmit="return confirm('¿Enviar el recordatorio de votación por email a quienes aún no han votado la etapa abierta?');">
+      <button class="btn btn-outline-primary" type="submit">
+        <i class="bi bi-envelope-paper"></i> Enviar recordatorios ahora
+      </button>
+    </form>
   </div>
 </div>
 <p class="text-muted small">
@@ -42,6 +54,9 @@
   <strong>Abrir votación 1 hora</strong> reabre la etapa activa
   {% if active_stage %}(<strong>Etapa {{ active_stage.number }}</strong>){% endif %}
   solo para casos fortuitos. Si el scraping falla, ingresa los resultados manualmente abajo.
+  <strong>Enviar recordatorios</strong> manda un correo a quienes aún no han votado la etapa con
+  votación abierta (se envía solo, automáticamente, cada tarde). <strong>Correo de prueba</strong>
+  te lo envía solo a ti para comprobar que llega.
 </p>
 
 <div class="accordion" id="stagesAcc">
