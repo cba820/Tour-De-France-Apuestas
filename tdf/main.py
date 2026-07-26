@@ -1,5 +1,5 @@
 """Blueprint principal: dashboard, etapas, detalle, ranking y votación."""
-from flask import (Blueprint, flash, redirect, render_template,
+from flask import (Blueprint, flash, jsonify, redirect, render_template,
                    request, url_for)
 from flask_login import current_user, login_required
 
@@ -9,11 +9,83 @@ from .scoring import ranking
 
 bp = Blueprint("main", __name__)
 
+# Campos de StageResult que deben estar completos para habilitar la ceremonia.
+_RESULT_FIELDS = ("first_rider", "second_rider", "third_rider",
+                  "yellow_rider", "green_rider", "polka_rider", "white_rider")
+
 
 def active_stage():
     """Primera etapa no terminada (la etapa 'del día')."""
     return (Stage.query.filter_by(is_finished=False)
             .order_by(Stage.number).first())
+
+
+def ceremony_ready():
+    """¿Está disponible la ceremonia final para todos?
+
+    Se habilita cuando ya no queda ninguna etapa por cerrar (todas finalizadas)
+    y la última etapa tiene su podio y los cuatro maillots completos.
+    """
+    if active_stage() is not None:
+        return False
+    last = Stage.query.order_by(Stage.number.desc()).first()
+    if last is None or not last.is_finished:
+        return False
+    result = last.result
+    if result is None:
+        return False
+    return all(getattr(result, f) for f in _RESULT_FIELDS)
+
+
+@bp.app_context_processor
+def inject_ceremony():
+    """Expone a todas las plantillas si la ceremonia final ya está disponible."""
+    try:
+        ready = ceremony_ready()
+    except Exception:  # noqa: BLE001 - nunca romper el render por esto
+        ready = False
+    return {"ceremony_ready": ready}
+
+
+def _ceremony_payload():
+    """Datos para la animación final: podio + matriz de puntos por etapa.
+
+    Reutiliza ranking() (orden y posiciones finales) y stats.progression()
+    (puntos acumulados por etapa ya guardados). No re-puntúa nada.
+    """
+    from .stats import progression
+
+    prog = progression()
+    labels = prog["labels"]
+    cum_by_id = {d["user_id"]: d["data"] for d in prog["datasets"]}
+    rows = ranking()
+
+    participants = []
+    for row in rows:
+        uid = row["user"].id
+        cum = cum_by_id.get(uid, [0] * len(labels))
+        per_stage, prev = [], 0
+        for value in cum:
+            per_stage.append(value - prev)
+            prev = value
+        participants.append({
+            "user_id": uid,
+            "username": row["user"].username,
+            "total": row["points"],
+            "position": row["position"],
+            "cumulative": cum,
+            "perStage": per_stage,
+            "isMe": uid == current_user.id,
+        })
+
+    podium = [{
+        "position": p["position"],
+        "username": p["username"],
+        "points": p["total"],
+        "isMe": p["isMe"],
+    } for p in participants[:3]]
+
+    return {"stages": labels, "podium": podium, "participants": participants}
 
 
 @bp.route("/")
@@ -104,6 +176,23 @@ def stage_detail(number):
 @login_required
 def ranking_view():
     return render_template("ranking.html", rows=ranking())
+
+
+@bp.route("/ceremony/data")
+@login_required
+def ceremony_data():
+    """JSON para la ceremonia final.
+
+    Los participantes normales solo la reciben cuando ceremony_ready() es True.
+    El admin puede pedirla siempre (modo previsualización) aunque falten etapas.
+    """
+    ready = ceremony_ready()
+    if not ready and not current_user.is_admin:
+        return jsonify({"ready": False, "preview": False}), 200
+    payload = _ceremony_payload()
+    payload["ready"] = ready
+    payload["preview"] = not ready  # admin viendo antes de tiempo
+    return jsonify(payload)
 
 
 @bp.route("/stats")

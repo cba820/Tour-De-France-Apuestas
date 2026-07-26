@@ -1,0 +1,311 @@
+/* ================================================================
+   Ceremonia final del Tour: podio + fuegos artificiales + bar race.
+   Todo autónomo (sin librerías externas).
+   ================================================================ */
+
+:root {
+  --cer-gold: #ffd60a;
+  --cer-silver: #cfd8dc;
+  --cer-bronze: #e08c3e;
+}
+
+/* Botón flotante para reabrir la ceremonia */
+.cer-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1080;
+  border: none;
+  border-radius: 999px;
+  padding: .7rem 1.15rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: .9rem;
+  color: #14110f;
+  background: linear-gradient(120deg, #ffd60a, #f4a300);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.cer-fab:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(0, 0, 0, .38); }
+.cer-fab .cer-fab-emoji { font-size: 1.15rem; animation: cer-trophy 2.4s ease-in-out infinite; }
+@keyframes cer-trophy { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+/* Overlay a pantalla completa */
+.cer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: radial-gradient(ellipse at 50% 0%, #1c2a45 0%, #0b1120 60%, #070a12 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.cer-overlay.cer-visible { opacity: 1; }
+body.cer-open { overflow: hidden; }
+
+.cer-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cer-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 5;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.cer-close:hover { background: rgba(255, 255, 255, .2); }
+
+.cer-stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: clamp(1rem, 3vh, 2.2rem) clamp(1rem, 4vw, 3rem);
+}
+.cer-panel { display: none; flex: 1; flex-direction: column; min-height: 0; }
+.cer-panel.cer-active { display: flex; }
+
+.cer-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 .2rem;
+  font-size: clamp(1.4rem, 4vw, 2.4rem);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, .5);
+}
+.cer-subtitle { text-align: center; color: #aab6cc; margin-bottom: 1.2rem; font-size: .95rem; }
+
+/* --------------------------- Podio --------------------------- */
+.cer-podium {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(.5rem, 2.5vw, 2rem);
+  padding-bottom: 4vh;
+}
+.cer-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: clamp(90px, 22vw, 220px);
+  opacity: 0;
+  transform: translateY(40px);
+}
+.cer-spot.cer-in { animation: cer-rise .7s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes cer-rise { to { opacity: 1; transform: translateY(0); } }
+
+.cer-avatar {
+  width: clamp(52px, 10vw, 84px);
+  height: clamp(52px, 10vw, 84px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.1rem, 3vw, 2rem);
+  color: #14110f;
+  margin-bottom: .5rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .4);
+}
+.cer-medal { font-size: clamp(1.4rem, 4vw, 2.4rem); line-height: 1; margin-bottom: .1rem; }
+.cer-name {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  text-align: center;
+  font-size: clamp(.8rem, 2vw, 1.1rem);
+  margin-bottom: .1rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.cer-pts { color: var(--cer-gold); font-weight: 700; margin-bottom: .5rem; font-size: clamp(.85rem, 2vw, 1.15rem); }
+.cer-me-tag {
+  background: var(--cer-gold);
+  color: #14110f;
+  border-radius: 999px;
+  padding: 0 .5rem;
+  font-size: .7rem;
+  font-weight: 700;
+  margin-left: .3rem;
+}
+
+.cer-block {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, .05));
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-bottom: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: .6rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 5vw, 3rem);
+  color: rgba(255, 255, 255, .55);
+}
+.cer-spot-1 .cer-block { height: clamp(150px, 30vh, 260px); background: linear-gradient(180deg, rgba(255,214,10,.35), rgba(255,214,10,.08)); }
+.cer-spot-2 .cer-block { height: clamp(110px, 22vh, 200px); }
+.cer-spot-3 .cer-block { height: clamp(80px, 16vh, 150px); }
+.cer-spot-1 .cer-avatar { background: linear-gradient(135deg, #ffe680, #f4a300); }
+.cer-spot-2 .cer-avatar { background: linear-gradient(135deg, #eceff1, #b0bec5); }
+.cer-spot-3 .cer-avatar { background: linear-gradient(135deg, #f0b57a, #c9741f); }
+
+/* --------------------------- Bar race --------------------------- */
+.cer-race-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.cer-stage-pill {
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  padding: .35rem 1rem;
+  font-weight: 700;
+  font-family: 'Montserrat', sans-serif;
+}
+.cer-race {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: .5rem;
+}
+.cer-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  transition: transform .7s cubic-bezier(.22, 1, .36, 1);
+  will-change: transform;
+}
+.cer-row-rank {
+  width: 1.8rem;
+  text-align: right;
+  font-weight: 700;
+  color: #aab6cc;
+  font-size: .85rem;
+  flex-shrink: 0;
+}
+.cer-row-name {
+  width: clamp(80px, 16vw, 170px);
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: .88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cer-bar-wrap { flex: 1; height: 22px; position: relative; }
+.cer-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #4895ef, #4361ee);
+  transition: width .7s cubic-bezier(.22, 1, .36, 1), background .3s ease;
+  min-width: 2px;
+}
+.cer-row-me .cer-bar { background: linear-gradient(90deg, #ffe680, #f4a300); }
+.cer-row-1 .cer-bar { background: linear-gradient(90deg, #ffd60a, #f4a300); }
+.cer-row-2 .cer-bar { background: linear-gradient(90deg, #eceff1, #90a4ae); }
+.cer-row-3 .cer-bar { background: linear-gradient(90deg, #f0b57a, #c9741f); }
+.cer-row-score {
+  width: 3rem;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: .9rem;
+}
+.cer-row-me .cer-row-name { color: var(--cer-gold); }
+.cer-gain {
+  position: absolute;
+  right: 3.4rem;
+  color: #7CFC98;
+  font-weight: 700;
+  font-size: .82rem;
+  opacity: 0;
+  pointer-events: none;
+}
+.cer-gain.cer-pop { animation: cer-gain .9s ease-out; }
+@keyframes cer-gain {
+  0% { opacity: 0; transform: translateY(6px); }
+  25% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+
+/* Controles */
+.cer-controls {
+  display: flex;
+  gap: .6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+}
+.cer-btn {
+  border: 1px solid rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  border-radius: 999px;
+  padding: .5rem 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease;
+}
+.cer-btn:hover { background: rgba(255, 255, 255, .2); }
+.cer-btn:active { transform: scale(.97); }
+.cer-btn-primary {
+  background: linear-gradient(120deg, #ffd60a, #f4a300);
+  color: #14110f;
+  border: none;
+}
+.cer-btn-primary:hover { filter: brightness(1.05); background: linear-gradient(120deg, #ffd60a, #f4a300); }
+
+.cer-preview-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  background: rgba(229, 56, 59, .9);
+  color: #fff;
+  border-radius: 999px;
+  padding: .25rem 1rem;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .cer-row-score { width: 2.4rem; font-size: .8rem; }
+  .cer-gain { right: 2.8rem; }
+}

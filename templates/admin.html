@@ -46,8 +46,22 @@
         <i class="bi bi-envelope-paper"></i> Enviar recordatorios ahora
       </button>
     </form>
+    <button type="button" class="btn btn-outline-warning"
+            onclick="window.TDFCeremony && window.TDFCeremony.open();">
+      <i class="bi bi-trophy-fill"></i> Previsualizar ceremonia final
+    </button>
   </div>
 </div>
+<p class="text-muted small">
+  <strong>Previsualizar ceremonia final</strong> abre la animación de cierre (podio + fuegos
+  artificiales + evolución de puntos por etapa) con los datos actuales, solo para ti.
+  {% if ceremony_ready %}
+    Ya está <strong>habilitada para todos</strong>: los participantes la ven al entrar y con el botón 🏆.
+  {% else %}
+    Aún <strong>no está habilitada</strong> para el resto: se activará al cerrar la última etapa con
+    el podio y los cuatro maillots completos.
+  {% endif %}
+</p>
 <p class="text-muted small">
   El botón <strong>Actualizar resultados</strong> scrapea las etapas ya disputadas (podio +
   maillots amarillo/verde/montaña) y recalcula puntos y ranking. El maillot blanco se ingresa a mano.

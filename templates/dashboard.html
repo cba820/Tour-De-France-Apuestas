@@ -12,6 +12,12 @@
   <div class="text-center py-5">
     <h2>🏁 ¡El Tour ha terminado!</h2>
     <p class="text-muted">No quedan etapas pendientes. Revisa el <a href="{{ url_for('main.ranking_view') }}">ranking final</a>.</p>
+    {% if ceremony_ready %}
+    <button type="button" class="btn btn-tdf btn-lg mt-2"
+            onclick="window.TDFCeremony && window.TDFCeremony.open();">
+      <i class="bi bi-trophy-fill"></i> Ver la ceremonia final
+    </button>
+    {% endif %}
   </div>
 {% else %}
 <div class="row g-4">
