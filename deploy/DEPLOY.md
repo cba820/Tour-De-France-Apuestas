@@ -170,3 +170,68 @@ Deberías ver `[vuelta/seed] 21 etapas creadas.` y `[vuelta/seed] N corredores c
 > El respaldo automático de la base lo hace el workflow de GitHub Actions antes de cada
 > despliegue (`instance/tdf.db.bak`). Aun así, conviene bajarse una copia manual con el `scp`
 > de arriba antes del primer despliegue de La Vuelta.
+
+---
+
+## Estado real del servidor (agosto 2026)
+
+La instalación en EC2 no es la de la guía por defecto: hay **Caddy delante**.
+
+```
+Internet ──► Caddy (:80 redirige a :443, :443 con HTTPS)
+                └──► gunicorn en 127.0.0.1:8000 ──► wsgi:app
+```
+
+- El unit `tdf.service` arranca gunicorn con `--bind 127.0.0.1:8000` (no en el :80).
+- `/etc/caddy/Caddyfile` define **dos** dominios, ambos hacia `127.0.0.1:8000`:
+  - `predicciones-draft-tdf.duckdns.org` — el principal.
+  - `<ip-publica>.sslip.io` — respaldo, ver más abajo.
+- Caddy no tiene `ExecReload` en su unit, así que para recargar sin cortar:
+  ```bash
+  sudo caddy reload --config /etc/caddy/Caddyfile
+  ```
+
+Consecuencia práctica: para comprobar si la app está viva hay que pedir el
+**:8000**. Pedir el `:80` devuelve el 308 de Caddy y da un falso positivo aunque
+gunicorn esté caído (el workflow ya lo tiene en cuenta).
+
+## Cuando la instancia cambia de IP pública
+
+Es el fallo que más molesta: al hac*Stop* y *Start*, EC2 asigna una IP nueva y se
+rompen tres cosas a la vez.
+
+| Qué se rompe | Cómo se arregla |
+|---|---|
+| El deploy automático | Actualizar el secret `EC2_HOST` del repo (Settings → Secrets and variables → Actions) |
+| La URL pública | Actualizar el registro A en duckdns.org con la IP nueva |
+| El enlace de los correos | `SITE_URL` en `/etc/systemd/system/tdf.service` (irrelevante mientras los recordatorios estén apagados) |
+
+**La solución de fondo es una Elastic IP**: AWS Console → EC2 → Elastic IPs →
+*Allocate* → *Associate* a la instancia. La IP deja de cambiar y nada de lo
+anterior se vuelve a romper. Es gratis mientras esté asociada a una instancia
+encendida.
+
+### URL de respaldo sin DuckDNS
+
+`sslip.io` resuelve cualquier IP incrustada en el nombre, sin registro ni tokens:
+`18.225.172.13.sslip.io` → `18.225.172.13`. Caddy le emite certificado
+automáticamente, así que da HTTPS válido. Sirve para entrar cuando DuckDNS está
+caído o no se puede acceder a su panel.
+
+El nombre lleva la IP dentro, así que **cambia si cambia la IP**. Con una Elastic
+IP pasa a ser permanente y DuckDNS deja de hacer falta. Para actualizarlo o
+quitarlo, edita el bloque en `/etc/caddy/Caddyfile` y recarga con el comando de
+arriba. Ten en cuenta que es un servicio gratuito de terceros.
+
+## Comprobar un despliegue
+
+El workflow ya ejecuta el diagnóstico al final y deja la salida en el log de la
+Action. A mano:
+
+```bash
+cd /home/ec2-user/TDF_apuestas && .venv/bin/python scripts/diagnostico.py
+```
+
+Los logs de la app quedan en buffer (el unit no fija `PYTHONUNBUFFERED`), así que
+`journalctl` puede no mostrar los mensajes del arranque hasta que el proceso se
+reinicia. Para verificar el estado real, fíate del diagnóstico y no del log.
