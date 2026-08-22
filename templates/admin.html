@@ -34,6 +34,9 @@
     <form method="post" action="{{ url_for('admin.force_update') }}">
       <button class="btn btn-tdf"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
     </form>
+    {# Los recordatorios por email están desactivados: los botones solo aparecen
+       si se vuelve a habilitar con REMINDERS_ENABLED=1. #}
+    {% if config.REMINDERS_ENABLED %}
     <form method="post" action="{{ url_for('admin.send_reminders') }}">
       <input type="hidden" name="test" value="1">
       <button class="btn btn-outline-secondary" type="submit">
@@ -46,6 +49,7 @@
         <i class="bi bi-envelope-paper"></i> Enviar recordatorios ahora
       </button>
     </form>
+    {% endif %}
     <button type="button" class="btn btn-outline-warning"
             onclick="window.TDFCeremony && window.TDFCeremony.open();">
       <i class="bi bi-trophy-fill"></i> Previsualizar ceremonia final
@@ -68,9 +72,13 @@
   <strong>Abrir votación 1 hora</strong> reabre la etapa activa
   {% if active_stage %}(<strong>Etapa {{ active_stage.number }}</strong>){% endif %}
   solo para casos fortuitos. Si el scraping falla, ingresa los resultados manualmente abajo.
+  {% if config.REMINDERS_ENABLED %}
   <strong>Enviar recordatorios</strong> manda un correo a quienes aún no han votado la etapa con
   votación abierta (se envía solo, automáticamente, cada tarde). <strong>Correo de prueba</strong>
   te lo envía solo a ti para comprobar que llega.
+  {% else %}
+  Los <strong>recordatorios por email están desactivados</strong>.
+  {% endif %}
 </p>
 
 <div class="accordion" id="stagesAcc">

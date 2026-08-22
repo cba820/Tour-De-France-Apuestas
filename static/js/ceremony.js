@@ -9,7 +9,10 @@
   "use strict";
 
   var CFG = window.__CEREMONY || {};
-  var SEEN_KEY = "tdf_ceremony_seen_v1";
+  // Clave de sesión y subtítulo son configurables para poder reutilizar la
+  // ceremonia en varias competencias (Tour archivado, La Vuelta, futuras).
+  var SEEN_KEY = CFG.seenKey || "tdf_ceremony_seen_v1";
+  var SUBTITLE = CFG.subtitle || "Tour de France 2026 · ¡Enhorabuena a todos!";
 
   // ---------------------------------------------------------------
   // Utilidades
@@ -207,7 +210,7 @@
       var panel = el("div", "cer-panel cer-active");
       panel.dataset.panel = "podium";
       panel.appendChild(el("h1", "cer-title", "🏆 Clasificación final"));
-      panel.appendChild(el("div", "cer-subtitle", "Tour de France 2026 · ¡Enhorabuena a todos!"));
+      panel.appendChild(el("div", "cer-subtitle", SUBTITLE));
 
       var podium = el("div", "cer-podium");
       // Orden visual: 2º, 1º, 3º
@@ -407,6 +410,9 @@
     }
   };
 
+  // RaceCeremony es el nombre nuevo; TDFCeremony se mantiene para no romper
+  // las plantillas archivadas del Tour.
+  window.RaceCeremony = Ceremony;
   window.TDFCeremony = Ceremony;
 
   // ---------------------------------------------------------------

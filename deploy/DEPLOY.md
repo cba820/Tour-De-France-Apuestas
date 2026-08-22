@@ -133,10 +133,40 @@ sudo systemctl restart tdf       # reiniciar la app
 - Usa **una sola** instancia `t3.micro`/`t2.micro`. El free tier da 750 h/mes (una instancia
   24/7) durante 12 meses.
 - Nota: AWS cobra ~USD 3.6/mes por IP pública IPv4, pero el free tier lo cubre el primer año.
-- Cuando termine el Tour (26 de julio), puedes **Stop** o **Terminate** la instancia para no
-  gastar nada. (Con *Stop* conservas los datos; con *Terminate* se borra todo.)
+- Cuando termine La Vuelta (13 de septiembre), puedes **Stop** o **Terminate** la instancia
+  para no gastar nada. (Con *Stop* conservas los datos; con *Terminate* se borra todo, incluidos
+  el histórico del Tour y el de La Vuelta.)
 - La base de datos SQLite vive en `/home/ec2-user/TDF_apuestas/instance/tdf.db`. Para respaldarla,
   desde tu PC en la carpeta del proyecto:
   ```powershell
   scp -i "tdf-key.pem" ec2-user@ec2-18-221-241-6.us-east-2.compute.amazonaws.com:/home/ec2-user/TDF_apuestas/instance/tdf.db ./backup.db
   ```
+
+---
+
+## Cambio de competencia: del Tour a La Vuelta 2026
+
+El paso a La Vuelta **no necesita migración ni borrar nada**:
+
+1. Las tablas nuevas llevan el prefijo `vuelta_` y las crea `db.create_all()` en el primer
+   arranque. Las tablas del Tour (`stages`, `predictions`, `stage_results`, `riders`) y la de
+   usuarios (`users`) quedan intactas.
+2. En ese primer arranque la app scrapea el recorrido de las 21 etapas y la lista de inscritos,
+   así que **el servidor necesita salida a internet** (ya la tiene, la usaba el scraper del Tour).
+   Si el scraping falla, arranca igual con los datos embebidos en `vuelta/seed.py`.
+3. Las pantallas del Tour pasan a `/archivo/tdf2026/` y solo las ve el administrador.
+4. Los **recordatorios por email quedan desactivados** con `REMINDERS_ENABLED=0` en
+   `/etc/systemd/system/tdf.service`. Si quieres reactivarlos, pon `REMINDERS_ENABLED=1`,
+   completa `MAIL_PASSWORD` con la App Password de Gmail y reinicia el servicio.
+
+Después de desplegar, comprueba en los logs que el seed corrió bien:
+
+```bash
+sudo journalctl -u tdf -n 50 --no-pager | grep vuelta
+```
+
+Deberías ver `[vuelta/seed] 21 etapas creadas.` y `[vuelta/seed] N corredores cargados.`
+
+> El respaldo automático de la base lo hace el workflow de GitHub Actions antes de cada
+> despliegue (`instance/tdf.db.bak`). Aun así, conviene bajarse una copia manual con el `scp`
+> de arriba antes del primer despliegue de La Vuelta.

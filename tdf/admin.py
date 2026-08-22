@@ -62,6 +62,11 @@ def send_reminders():
     Con test=1 manda el correo solo al admin (y no registra el envío), para poder
     verificar la entregabilidad sin molestar a los participantes.
     """
+    if not current_app.config.get("REMINDERS_ENABLED"):
+        flash("Los recordatorios por email están desactivados "
+              "(REMINDERS_ENABLED=0). No se envió nada.", "warning")
+        return redirect(url_for("admin.panel"))
+
     from .mailer import send_vote_reminders
     test = bool(request.form.get("test"))
     try:

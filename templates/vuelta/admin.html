@@ -1,0 +1,191 @@
+{% extends "vuelta/base.html" %}
+{% from 'vuelta/_macros.html' import swatch, rider_select with context %}
+{% block title %}Admin · Apuestas La Vuelta 2026{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <h2 class="mb-0"><i class="bi bi-gear-fill"></i> Panel de administración · La Vuelta 2026</h2>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="{{ url_for('vuelta_admin.reopen_voting') }}"
+          onsubmit="return confirm('¿Reabrir las apuestas de la etapa activa por 1 hora?');">
+      <button class="btn btn-outline-vuelta" {{ 'disabled' if not active_stage }}>
+        <i class="bi bi-unlock-fill"></i> Abrir apuestas 1 hora
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('vuelta_admin.force_update') }}">
+      <button class="btn btn-vuelta"><i class="bi bi-arrow-repeat"></i> Actualizar resultados ahora</button>
+    </form>
+    <form method="post" action="{{ url_for('vuelta_admin.refresh_riders') }}">
+      <button class="btn btn-outline-secondary"><i class="bi bi-people-fill"></i> Actualizar inscritos</button>
+    </form>
+    <button type="button" class="btn btn-gold"
+            onclick="window.RaceCeremony && window.RaceCeremony.open();">
+      <i class="bi bi-trophy-fill"></i> Previsualizar ceremonia final
+    </button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">
+      <i class="bi bi-archive"></i> Archivo TDF 2026
+    </a>
+  </div>
+</div>
+
+<p class="text-muted small">
+  <strong>Actualizar resultados</strong> lee las etapas ya disputadas
+  (podio + los cuatro maillots) y recalcula puntos y clasificación; también corre
+  solo cada {{ config.RESULTS_POLL_INTERVAL_MINUTES }} minutos desde que la etapa
+  activa debería haber terminado. <strong>Actualizar inscritos</strong> vuelve a leer la
+  lista de corredores (bajas y sustituciones); nunca borra corredores ya elegidos en
+  una apuesta. <strong>Abrir apuestas 1 hora</strong> reabre la etapa activa
+  {% if active_stage %}(<strong>Etapa {{ active_stage.number }}</strong>){% endif %}
+  para casos fortuitos. Si una clasificación no está publicada, cárgala a mano abajo.
+  <strong>Archivo TDF 2026</strong> abre el histórico del Tour, que solo ves tú.
+  Los <strong>recordatorios por email están desactivados</strong>.
+</p>
+
+<!-- ============ Configuración de puntajes ============ -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-sliders"></i> Puntajes de la competencia</span>
+    <span class="text-muted small">
+      Máximo por etapa: <strong>{{ vuelta_scoring.max_stage_points|pts }}</strong>
+    </span>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small">
+      Define cuántos puntos vale cada puesto del podio y cada maillot acertado.
+      Al guardar, <strong>se recalculan todas las etapas ya disputadas</strong>, así que la
+      clasificación queda coherente. Usa <code>0</code> para que un premio no otorgue puntos.
+      Rango permitido: 0 a 99.
+    </p>
+    <form method="post" action="{{ url_for('vuelta_admin.edit_scoring') }}"
+          onsubmit="return confirm('¿Guardar los puntajes y recalcular todas las etapas ya disputadas?');">
+      <div class="row g-3">
+        {% for field, label, icon in scoring_fields %}
+        <div class="col-md-6 col-xl-4">
+          <label class="form-label small" for="{{ field }}">
+            {% if field.startswith('points_') and field[7:] in JERSEY_KEYS %}
+              {{ swatch(field[7:]) }}
+            {% else %}
+              {{ icon }}
+            {% endif %}
+            {{ label }}
+          </label>
+          <div class="input-group input-group-sm">
+            <input type="number" min="0" max="99" step="1" class="form-control points-input"
+                   id="{{ field }}" name="{{ field }}"
+                   value="{{ vuelta_scoring[field] }}">
+            <span class="input-group-text">pts</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-vuelta mt-3">
+        <i class="bi bi-save"></i> Guardar puntajes y recalcular
+      </button>
+      {% if vuelta_scoring.updated_at %}
+      <div class="form-text">Última modificación: {{ vuelta_scoring.updated_at|fdatetime }} h · hora Chile</div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- ============ Etapas ============ -->
+<h4 class="mb-2"><i class="bi bi-flag-fill"></i> Etapas ({{ stages|length }})</h4>
+<p class="text-muted small">
+  Ajusta la hora de salida (el cierre de apuestas se calcula 1 h antes) o carga el
+  resultado a mano. Guardar resultados cierra la etapa y recalcula los puntos.
+</p>
+
+<div class="accordion mb-4" id="stagesAcc">
+  {% for s in stages %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+              data-bs-target="#s{{ s.number }}">
+        <span class="me-2 fw-bold">Etapa {{ s.number }}</span>
+        {{ s.start_city }} → {{ s.finish_city }} · {{ s.date|fdate }}
+        {% if s.is_finished %}<span class="badge badge-finished ms-2">Finalizada</span>
+        {% elif s.is_open_for_voting() %}<span class="badge badge-open ms-2">Apuestas abiertas</span>
+        {% else %}<span class="badge badge-closed ms-2">Cerrada / próxima</span>{% endif %}
+      </button>
+    </h2>
+    <div id="s{{ s.number }}" class="accordion-collapse collapse" data-bs-parent="#stagesAcc">
+      <div class="accordion-body">
+        <form method="post" action="{{ url_for('vuelta_admin.edit_stage', number=s.number) }}">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small">Hora de salida · hora Chile (cierre = 1 h antes)</label>
+              <input type="datetime-local" name="start_time" class="form-control form-control-sm"
+                     value="{{ s.start_time.strftime('%Y-%m-%dT%H:%M') }}">
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small">🥇 1º de la etapa</label>
+              {{ rider_select('first_rider', s.result.first_rider if s.result else '', riders) }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">🥈 2º de la etapa</label>
+              {{ rider_select('second_rider', s.result.second_rider if s.result else '', riders) }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">🥉 3º de la etapa</label>
+              {{ rider_select('third_rider', s.result.third_rider if s.result else '', riders) }}
+            </div>
+            {% for key in JERSEY_KEYS %}
+            <div class="col-md-3">
+              <label class="form-label small">
+                {{ swatch(key) }} {{ JERSEYS[key].name }}
+                <span class="text-muted">· {{ JERSEYS[key].what }}</span>
+              </label>
+              {{ rider_select(JERSEYS[key].field,
+                              s.result[JERSEYS[key].field] if s.result else '', riders) }}
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-3 d-flex gap-2 flex-wrap">
+            <button type="submit" name="save_results" value="1" class="btn btn-sm btn-vuelta">
+              Guardar resultados y cerrar etapa
+            </button>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Guardar solo la hora</button>
+            {% if s.is_finished %}
+            <button type="submit" name="reopen_stage" value="1" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('¿Reabrir la etapa {{ s.number }}? Sus resultados se conservan.');">
+              Reabrir etapa
+            </button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ============ Corredores ============ -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-people-fill"></i> Corredores inscritos ({{ riders|length }})</div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-1" style="max-height:220px;overflow:auto">
+      {% for r in riders %}
+      <span class="jersey-pill" style="font-size:.75rem">
+        {% if r.is_favorite %}⭐{% endif %} {{ r.name }}
+        {% if r.team %}<span class="text-muted">· {{ r.team }}</span>{% endif %}
+      </span>
+      {% else %}
+      <span class="text-muted">No hay corredores cargados. Usa «Actualizar inscritos».</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{{ url_for('static', filename='js/rider-select.js') }}"></script>
+{% endblock %}

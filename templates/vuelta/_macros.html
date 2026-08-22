@@ -1,0 +1,40 @@
+{# Macros compartidas por las pantallas de La Vuelta. #}
+
+{# Cuadradito de color del maillot. El de montaña es blanco con lunares
+   azules, así que se pinta con la clase `dots` en vez de un color plano. #}
+{% macro swatch(key) -%}
+<span class="jersey-swatch {{ 'dots' if key == 'blue' }}"
+      style="background:{{ JERSEYS[key].color }}"
+      title="{{ JERSEYS[key].name }} · {{ JERSEYS[key].what }}"></span>
+{%- endmacro %}
+
+{# Desplegable filtrable de corredores (Tom Select).
+   Si el valor guardado no está en la lista (p. ej. un corredor que ya no
+   figura entre los inscritos), se añade como opción para no perderlo. #}
+{% macro rider_select(name, current, riders, required=False, empty_label='— Sin selección —') %}
+{% set names = riders | map(attribute='name') | list %}
+<select name="{{ name }}" class="rider-select" autocomplete="off"
+        {{ 'required' if required }} placeholder="Escribe para filtrar…">
+  <option value="">{{ empty_label }}</option>
+  {% for r in riders %}
+  <option value="{{ r.name }}" {{ 'selected' if current == r.name }}>{{ r.name }}{% if r.team %} · {{ r.team }}{% endif %}</option>
+  {% endfor %}
+  {% if current and current not in names %}
+  <option value="{{ current }}" selected>{{ current }} (fuera de lista)</option>
+  {% endif %}
+</select>
+{% endmacro %}
+
+{# Resumen en una línea de cuánto vale cada acierto, según la configuración
+   vigente del administrador. #}
+{% macro points_summary() %}
+{% if vuelta_scoring %}
+1º = <strong>{{ vuelta_scoring.points_first }}</strong> pts ·
+2º = <strong>{{ vuelta_scoring.points_second }}</strong> pts ·
+3º = <strong>{{ vuelta_scoring.points_third }}</strong> pts ·
+maillots: 🔴 {{ vuelta_scoring.points_red }} ·
+🟢 {{ vuelta_scoring.points_green }} ·
+🔵 {{ vuelta_scoring.points_blue }} ·
+⚪ {{ vuelta_scoring.points_white }}
+{% endif %}
+{% endmacro %}

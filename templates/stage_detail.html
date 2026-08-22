@@ -29,8 +29,8 @@
       </ul>
       <div class="card-body">
         {% for key in ['yellow','green','polka','white'] %}
-        <div class="jersey-pill mb-1 me-1"><span class="jersey-swatch" style="background:{{ JERSEYS[key][2] }}"></span>
-          {{ JERSEYS[key][1] }}: <strong>{{ stage.result[('%s_rider'|format(key))] or '—' }}</strong></div>
+        <div class="jersey-pill mb-1 me-1"><span class="jersey-swatch" style="background:{{ TDF_JERSEYS[key][2] }}"></span>
+          {{ TDF_JERSEYS[key][1] }}: <strong>{{ stage.result[('%s_rider'|format(key))] or '—' }}</strong></div>
         {% endfor %}
       </div>
     </div>

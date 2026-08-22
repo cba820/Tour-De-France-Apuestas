@@ -1,0 +1,269 @@
+/* ===================================================================
+   La Vuelta a España 2026 — hoja de estilo propia.
+
+   Paleta tomada de la identidad de La Vuelta: el rojo del maillot de
+   líder como color principal, granate muy oscuro para las superficies
+   sobre las que hay que leer texto claro, y oro/ámbar como acento
+   (medallas, puntos, destacados). Es independiente de style.css (el
+   Tour archivado) para que cambiar una no afecte a la otra.
+   =================================================================== */
+
+:root {
+  --v-red: #d4001f;
+  --v-red-dark: #a30017;
+  --v-red-bright: #ff1f3d;
+  --v-maroon: #2a0409;
+  --v-maroon-2: #4a0a14;
+  --v-gold: #f7b32b;
+  --v-gold-dark: #d9930f;
+  --v-ink: #241014;
+  --v-muted: #6f5c60;
+  --v-bg: #faf6f5;
+  --v-line: #ecdfe0;
+
+  /* Maillots */
+  --j-red: #d40f28;
+  --j-green: #12a14b;
+  --j-blue: #1d4ed8;
+  --j-white: #f8f9fa;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--v-bg);
+  color: var(--v-ink);
+}
+
+h1, h2, h3, h4, h5, .navbar-brand, .display-6 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+a { text-decoration: none; }
+.form-label.small { font-weight: 600; }
+
+/* ---- Navbar ---- */
+.v-navbar {
+  background: linear-gradient(100deg, var(--v-maroon) 0%, var(--v-red-dark) 55%, var(--v-red) 100%);
+  border-bottom: 3px solid var(--v-gold);
+}
+.v-navbar .navbar-brand { letter-spacing: .01em; }
+.brand-jersey {
+  display: inline-block;
+  width: 14px; height: 14px;
+  background: var(--v-gold);
+  border-radius: 3px;
+  transform: rotate(45deg);
+  margin-right: .45rem;
+  box-shadow: 0 0 0 3px rgba(247, 179, 43, .25);
+}
+
+/* ---- Barra de pestañas ---- */
+.v-tabs-bar {
+  background: #fff;
+  border-bottom: 1px solid var(--v-line);
+  box-shadow: 0 2px 10px rgba(42, 4, 9, .05);
+  padding: .7rem 0;
+}
+.v-tabs { display: flex; gap: .55rem; flex-wrap: wrap; }
+.v-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem 1.05rem;
+  border-radius: 999px;
+  border: 2px solid var(--v-line);
+  background: #fff;
+  color: #4a2c31;
+  font-weight: 600;
+  font-size: .92rem;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.v-tab:hover {
+  border-color: var(--v-red);
+  color: var(--v-red-dark);
+  transform: translateY(-1px);
+}
+.v-tab.active {
+  background: var(--v-red);
+  border-color: var(--v-red);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(212, 0, 31, .35);
+}
+
+/* ---- Hero de la etapa ---- */
+.v-hero {
+  background:
+    radial-gradient(1200px 220px at 10% -30%, rgba(247,179,43,.22), transparent 70%),
+    linear-gradient(135deg, var(--v-maroon) 0%, var(--v-maroon-2) 55%, var(--v-red-dark) 100%);
+  color: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+.v-hero .stage-badge {
+  background: var(--v-gold);
+  color: #2a0409;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: .25rem .9rem;
+  font-size: .85rem;
+  letter-spacing: .04em;
+}
+.v-hero .type-pill {
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .18);
+  color: #fff;
+}
+.profile-img {
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.metric {
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 12px;
+  padding: .75rem 1rem;
+}
+.metric .value { font-size: 1.35rem; font-weight: 800; font-family: 'Montserrat', sans-serif; }
+.metric .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; opacity: .72; }
+
+/* Métricas sobre fondo claro (páginas de estadísticas) */
+.metric-light {
+  background: #fff;
+  border: 1px solid var(--v-line);
+  border-radius: 12px;
+  padding: .75rem 1rem;
+  color: var(--v-ink);
+}
+.metric-light .value { font-size: 1.5rem; font-weight: 800; font-family: 'Montserrat', sans-serif; }
+.metric-light .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--v-muted); }
+
+/* ---- Cuenta atrás ---- */
+.countdown {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-family: 'Montserrat', sans-serif;
+}
+.text-gold { color: var(--v-gold) !important; }
+
+/* ---- Tarjetas ---- */
+.card { border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(42, 4, 9, .07); }
+.card-header {
+  background: #fff;
+  border-bottom: 2px solid #f6eceb;
+  font-weight: 700;
+  border-radius: 16px 16px 0 0 !important;
+}
+
+/* ---- Maillots ---- */
+.jersey-pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  border-radius: 10px; padding: .3rem .6rem;
+  font-weight: 600; font-size: .85rem;
+  border: 1px solid var(--v-line); background: #fff;
+}
+.jersey-swatch {
+  width: 15px; height: 15px; border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, .2);
+  flex: 0 0 auto;
+}
+/* El maillot de montaña es blanco con lunares azules: se dibuja con un
+   degradado radial repetido en vez de un color plano. */
+.jersey-swatch.dots {
+  background:
+    radial-gradient(circle at 25% 25%, var(--j-blue) 26%, transparent 27%),
+    radial-gradient(circle at 75% 75%, var(--j-blue) 26%, transparent 27%),
+    #fff !important;
+  background-size: 8px 8px;
+}
+
+.jersey-box {
+  border: 1px solid var(--v-line);
+  border-left-width: 5px;
+  border-radius: 12px;
+  padding: .6rem .8rem;
+  background: #fff;
+}
+
+/* ---- Ranking ---- */
+.rank-pos { font-family: 'Montserrat', sans-serif; font-weight: 800; width: 46px; }
+.rank-1 { color: #d4af37; }
+.rank-2 { color: #9aa0a6; }
+.rank-3 { color: #cd7f32; }
+.rank-me { background: #fff3f2 !important; }
+.medal { font-size: 1.2rem; }
+.pts-badge {
+  background: var(--v-red); color: #fff;
+  border-radius: 999px; padding: .2rem .6rem;
+  font-weight: 700; font-size: .8rem;
+}
+.pts-badge-soft {
+  background: #fdeaec; color: var(--v-red-dark);
+  border-radius: 999px; padding: .2rem .6rem;
+  font-weight: 700; font-size: .8rem;
+}
+
+/* ---- Etapas bloqueadas ---- */
+.stage-locked { opacity: .93; }
+.stage-locked img { filter: grayscale(35%); }
+.lock-overlay {
+  position: absolute;
+  top: 8px; right: 12px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(42, 4, 9, .78);
+  color: var(--v-gold);
+  border-radius: 50%;
+  font-size: 1rem;
+}
+
+/* ---- Estados ---- */
+.badge-open { background: var(--j-green); }
+.badge-closed { background: #6c757d; }
+.badge-finished { background: var(--v-maroon); }
+.badge-rest { background: #8d99ae; }
+
+/* ---- Botones ---- */
+.btn-vuelta {
+  background: var(--v-red);
+  border: none; color: #fff; font-weight: 700;
+}
+.btn-vuelta:hover, .btn-vuelta:focus { background: var(--v-red-dark); color: #fff; }
+.btn-outline-vuelta {
+  border: 2px solid var(--v-red); color: var(--v-red-dark);
+  background: #fff; font-weight: 600;
+}
+.btn-outline-vuelta:hover { background: var(--v-red); color: #fff; }
+.btn-gold {
+  background: var(--v-gold); border: none; color: #2a0409; font-weight: 700;
+}
+.btn-gold:hover { background: var(--v-gold-dark); color: #2a0409; }
+
+/* ---- Tipos de etapa ---- */
+.stage-type-mountains { color: var(--v-red); }
+.stage-type-flat { color: var(--j-green); }
+.stage-type-hills { color: #d97706; }
+.stage-type-ITT, .stage-type-TTT { color: var(--j-blue); }
+
+/* ---- Tabla de puntajes (reglas y panel de admin) ---- */
+.points-table td, .points-table th { vertical-align: middle; }
+.points-input { max-width: 6.5rem; }
+
+/* ---- Ceremonia final: se reutiliza ceremony.css con los colores de La
+   Vuelta (el original es amarillo/Tour). ---- */
+body.vuelta .cer-row-1 .cer-bar {
+  background: linear-gradient(90deg, var(--v-red-bright), var(--v-gold));
+}
+body.vuelta .cer-btn-primary,
+body.vuelta .cer-btn-primary:hover {
+  background: linear-gradient(120deg, var(--v-red-bright), var(--v-red-dark));
+  color: #fff;
+}
+body.vuelta .cer-fab {
+  background: linear-gradient(120deg, var(--v-red-bright), var(--v-red-dark));
+  color: #fff;
+}

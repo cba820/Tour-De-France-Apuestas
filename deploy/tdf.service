@@ -1,5 +1,5 @@
 [Unit]
-Description=Predicciones TDF 2026 (Flask + gunicorn)
+Description=Apuestas La Vuelta a Espana 2026 (Flask + gunicorn)
 After=network.target
 
 [Service]
@@ -13,10 +13,12 @@ Environment=ADMIN_USERNAME=admin
 Environment=ADMIN_PASSWORD=cambia-esta-clave-admin
 Environment=ADMIN_EMAIL=admin@tdf.local
 
-# --- Recordatorios de votación por email (opcional) ---
-# Usa una cuenta Gmail con verificación en 2 pasos y una "App Password" de 16
-# caracteres (NO la contraseña normal). Si dejas MAIL_USERNAME/MAIL_PASSWORD
-# vacíos, la función de recordatorios queda deshabilitada.
+# --- Recordatorios de votación por email ---
+# DESACTIVADOS a peticion del organizador: con REMINDERS_ENABLED=0 el scheduler
+# no programa el envio diario y el panel de admin oculta los botones de envio.
+# Para reactivarlos: REMINDERS_ENABLED=1 + una cuenta Gmail con verificacion en
+# 2 pasos y una "App Password" de 16 caracteres (NO la contrasena normal).
+Environment=REMINDERS_ENABLED=0
 Environment=MAIL_USERNAME=sebastianorellana820@gmail.com
 Environment=MAIL_PASSWORD=pon-aqui-la-app-password-de-gmail
 Environment=MAIL_FROM=sebastianorellana820@gmail.com

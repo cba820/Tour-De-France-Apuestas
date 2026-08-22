@@ -72,3 +72,40 @@ class Config:
 
     # URL pública del sitio, usada para el enlace dentro del correo.
     SITE_URL = os.environ.get("SITE_URL", "http://localhost")
+
+    # Interruptor global de los recordatorios de votación por email. Desactivado
+    # a petición del organizador: el scheduler no programa el envío diario y el
+    # panel de administración oculta los botones de envío.
+    REMINDERS_ENABLED = os.environ.get("REMINDERS_ENABLED", "0") in ("1", "true", "yes")
+
+    # ------------------------------------------------------------------
+    # La Vuelta a España 2026 (competencia activa)
+    # ------------------------------------------------------------------
+    VUELTA_YEAR = 2026
+
+    # Las etapas de La Vuelta salen ~13:00 hora de España. Guardamos la hora de
+    # salida en hora de Chile, convertida desde esta hora europea: así el cambio
+    # de horario chileno del 6 de septiembre se aplica solo (agosto = 6 h de
+    # diferencia, septiembre = 5 h). El admin puede ajustar cada etapa a mano.
+    VUELTA_EUROPE_TZ = "Europe/Madrid"
+    VUELTA_EUROPE_START_HOUR = 13
+    VUELTA_EUROPE_START_MINUTE = 0
+
+    # Puntajes POR DEFECTO de La Vuelta. Solo se usan para crear la fila de
+    # configuración la primera vez; después manda lo que el admin guarde en el
+    # panel (tabla vuelta_scoring).
+    VUELTA_POINTS_FIRST = 3
+    VUELTA_POINTS_SECOND = 2
+    VUELTA_POINTS_THIRD = 1
+    VUELTA_POINTS_RED = 1
+    VUELTA_POINTS_GREEN = 1
+    VUELTA_POINTS_BLUE = 1
+    VUELTA_POINTS_WHITE = 1
+
+    # ------------------------------------------------------------------
+    # Archivo del Tour de France 2026
+    # ------------------------------------------------------------------
+    # Las pantallas del Tour quedan archivadas bajo este prefijo y visibles solo
+    # para administradores. Los datos (etapas, apuestas, resultados y puntos) se
+    # conservan intactos en sus tablas originales.
+    ARCHIVE_URL_PREFIX = "/archivo/tdf2026"

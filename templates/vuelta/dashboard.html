@@ -1,0 +1,193 @@
+{% extends "vuelta/base.html" %}
+{% from 'vuelta/_macros.html' import swatch, rider_select, points_summary with context %}
+{% block title %}Etapa del día · Apuestas La Vuelta 2026{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block subnav %}{% set active_tab = 'bet' %}{% include 'vuelta/_tabs.html' %}{% endblock %}
+
+{% block content %}
+{% if not stage %}
+  <div class="text-center py-5">
+    <h2>🏁 ¡La Vuelta ha terminado!</h2>
+    <p class="text-muted">No quedan etapas pendientes. Revisa la
+      <a href="{{ url_for('vuelta.ranking_view') }}">clasificación final</a>.</p>
+    {% if vuelta_ceremony_ready %}
+    <button type="button" class="btn btn-vuelta btn-lg mt-2"
+            onclick="window.RaceCeremony && window.RaceCeremony.open();">
+      <i class="bi bi-trophy-fill"></i> Ver la ceremonia final
+    </button>
+    {% endif %}
+  </div>
+{% else %}
+<div class="row g-4">
+  <!-- Columna izquierda: etapa + apuesta -->
+  <div class="col-lg-8">
+    <div class="v-hero p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <span class="stage-badge">ETAPA {{ stage.number }}</span>
+          <span class="badge rounded-pill ms-2 type-pill">{{ stage_type_label(stage.stage_type) }}</span>
+          <h3 class="mt-2 mb-0">{{ stage.start_city }} → {{ stage.finish_city }}</h3>
+          <div class="text-white-50"><i class="bi bi-calendar-event"></i> {{ stage.date|fdate }}</div>
+        </div>
+        <div class="text-end">
+          {% if stage.is_open_for_voting() %}
+            <div class="text-white-50 small text-uppercase">Cierran las apuestas en</div>
+            <div class="countdown fs-4 text-gold" data-deadline="{{ stage.voting_deadline.isoformat() }}">--:--:--</div>
+            <div class="text-white-50" style="font-size:.72rem">
+              <i class="bi bi-clock"></i> {{ stage.voting_deadline|fdatetime }} h · hora Chile</div>
+          {% elif stage.status() == 'upcoming' %}
+            <span class="badge badge-closed">Se abre el {{ stage.voting_opens|fdate }}</span>
+          {% else %}
+            <span class="badge badge-closed">Apuestas cerradas</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <img class="profile-img my-3" src="{{ stage.profile_image_url }}"
+           alt="Altimetría de la etapa {{ stage.number }}"
+           onerror="this.style.display='none';document.getElementById('noimg').style.display='block';">
+      <div id="noimg" style="display:none" class="alert alert-secondary">Imagen de altimetría no disponible.</div>
+
+      <div class="row g-2">
+        <div class="col-4"><div class="metric"><div class="value">{{ stage.distance_km }} km</div><div class="label">Distancia</div></div></div>
+        <div class="col-4"><div class="metric"><div class="value">{{ '%d m'|format(stage.elevation_m) if stage.elevation_m else '📈' }}</div><div class="label">Desnivel</div></div></div>
+        <div class="col-4"><div class="metric"><div class="value">{{ stage.start_time|fdatetime }}</div><div class="label">Salida · hora Chile</div></div></div>
+      </div>
+    </div>
+
+    <!-- Formulario de apuesta -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-check2-square"></i> Tu apuesta</span>
+        {% if prediction %}<span class="badge bg-success">Apuesta registrada</span>{% endif %}
+      </div>
+      <div class="card-body">
+        {% if stage.is_open_for_voting() %}
+        <p class="text-muted small mb-3">
+          Elige quién gana la etapa y quién viste cada maillot al terminarla.
+          Puntajes vigentes: {{ points_summary() }}.
+          Puedes cambiar tu apuesta hasta el cierre.
+        </p>
+        <form method="post" action="{{ url_for('vuelta.vote', stage_id=stage.id) }}">
+          <div class="mb-4">
+            <label class="form-label small">🏆 Ganador de la etapa <span class="text-danger">*</span></label>
+            {{ rider_select('pick_winner',
+                            prediction.pick_winner if prediction else '',
+                            riders, required=True,
+                            empty_label='— Selecciona un corredor —') }}
+            <div class="form-text">
+              {{ vuelta_scoring.points_first|pts }} si llega 1º,
+              {{ vuelta_scoring.points_second }} si llega 2º y
+              {{ vuelta_scoring.points_third }} si llega 3º.
+            </div>
+          </div>
+
+          <div class="row g-3">
+            {% for key in JERSEY_KEYS %}
+            {% set j = JERSEYS[key] %}
+            <div class="col-md-6">
+              <div class="jersey-box h-100" style="border-left-color:{{ j.color if key != 'blue' else '#1d4ed8' }}">
+                <label class="form-label small mb-2">
+                  {{ swatch(key) }} {{ j.name }}
+                  <span class="text-muted">· {{ j.what }}</span>
+                  <span class="pts-badge-soft ms-1">+{{ vuelta_scoring.jersey_points(key) }} pts</span>
+                </label>
+                {{ rider_select('pick_' ~ key,
+                                prediction['pick_' ~ key] if prediction else '',
+                                riders) }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-vuelta mt-4">
+            <i class="bi bi-send-fill"></i> Guardar apuesta
+          </button>
+        </form>
+        {% else %}
+          {% if stage.status() == 'upcoming' %}
+            <p class="text-muted"><i class="bi bi-hourglass-split"></i>
+              Las apuestas de esta etapa se abren el {{ stage.voting_opens|fdate }} a las 00:00 (hora Chile).</p>
+          {% else %}
+            <p class="text-muted"><i class="bi bi-lock-fill"></i> Las apuestas de esta etapa están cerradas.</p>
+          {% endif %}
+          {% if prediction %}
+          <div class="row g-2">
+            <div class="col-12"><div class="jersey-pill">🏆 Ganador: <strong>{{ prediction.pick_winner or '—' }}</strong></div></div>
+            {% for key in JERSEY_KEYS %}
+            <div class="col-md-6">
+              <div class="jersey-pill">{{ swatch(key) }}{{ JERSEYS[key].name }}:
+                <strong>{{ prediction['pick_' ~ key] or '—' }}</strong></div>
+            </div>
+            {% endfor %}
+          </div>
+          {% elif stage.status() != 'upcoming' %}
+          <p class="text-danger mb-0">No registraste apuesta para esta etapa.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: top 5 -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-trophy-fill text-danger"></i> Top 5</span>
+        <a href="{{ url_for('vuelta.ranking_view') }}" class="small">Ver todo</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for row in top_ranking %}
+        <li class="list-group-item d-flex justify-content-between align-items-center {{ 'rank-me' if row.user.id == current_user.id }}">
+          <span><span class="rank-pos rank-{{ row.position }}">{{ row.position }}.</span> {{ row.user.username }}</span>
+          <span class="pts-badge">{{ row.points|pts }}</span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">Aún no hay puntuaciones.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><i class="bi bi-award"></i> Los cuatro maillots</div>
+      <ul class="list-group list-group-flush">
+        {% for key in JERSEY_KEYS %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ swatch(key) }} <strong>{{ JERSEYS[key].name }}</strong>
+            <span class="text-muted small">· {{ JERSEYS[key].what }}</span></span>
+          <span class="pts-badge-soft">+{{ vuelta_scoring.jersey_points(key) }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="card-body py-2">
+        <a href="{{ url_for('vuelta.rules') }}" class="small">Ver todas las reglas →</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{{ url_for('static', filename='js/rider-select.js') }}"></script>
+<script>
+  const el = document.querySelector('.countdown[data-deadline]');
+  if (el) {
+    const deadline = new Date(el.dataset.deadline).getTime();
+    const tick = () => {
+      const diff = deadline - Date.now();
+      if (diff <= 0) { el.textContent = 'CERRADAS'; el.classList.remove('text-gold'); return; }
+      const h = Math.floor(diff / 3.6e6);
+      const m = Math.floor((diff % 3.6e6) / 6e4);
+      const s = Math.floor((diff % 6e4) / 1e3);
+      el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    };
+    tick(); setInterval(tick, 1000);
+  }
+</script>
+{% endblock %}

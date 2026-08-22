@@ -80,7 +80,7 @@
           </div>
           <div class="row g-3">
             {% for key, field in [('yellow','pick_yellow'),('green','pick_green'),('polka','pick_polka'),('white','pick_white')] %}
-            {% set j = JERSEYS[key] %}
+            {% set j = TDF_JERSEYS[key] %}
             <div class="col-md-6">
               <label class="form-label small">
                 <span class="jersey-swatch" style="background:{{ j[2] }}"></span> {{ j[0] }} <span class="text-muted">({{ j[1] }})</span>
@@ -103,7 +103,7 @@
           <div class="row g-2">
             <div class="col-12"><div class="jersey-pill">🏆 Ganador: <strong>{{ prediction.pick_winner or '—' }}</strong></div></div>
             {% for key, field in [('yellow','pick_yellow'),('green','pick_green'),('polka','pick_polka'),('white','pick_white')] %}
-            <div class="col-md-6"><div class="jersey-pill"><span class="jersey-swatch" style="background:{{ JERSEYS[key][2] }}"></span>{{ JERSEYS[key][0] }}: <strong>{{ prediction[field] or '—' }}</strong></div></div>
+            <div class="col-md-6"><div class="jersey-pill"><span class="jersey-swatch" style="background:{{ TDF_JERSEYS[key][2] }}"></span>{{ TDF_JERSEYS[key][0] }}: <strong>{{ prediction[field] or '—' }}</strong></div></div>
             {% endfor %}
           </div>
           {% else %}

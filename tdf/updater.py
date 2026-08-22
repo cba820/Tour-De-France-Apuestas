@@ -17,6 +17,11 @@ def _notify_recap(stage_id):
     """
     from flask import current_app
     from .mailer import send_stage_recap
+    # El Tour está archivado y los correos están desactivados globalmente
+    # (Config.REMINDERS_ENABLED): cerrar una etapa histórica desde el panel no
+    # debe disparar correos a los participantes.
+    if not current_app.config.get("REMINDERS_ENABLED"):
+        return
     try:
         send_stage_recap(current_app._get_current_object(), stage_id)
     except Exception as exc:  # noqa: BLE001

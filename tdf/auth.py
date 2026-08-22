@@ -19,7 +19,7 @@ def _apply_admin_email(user):
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("vuelta.dashboard"))
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -53,7 +53,7 @@ def register():
         _apply_admin_email(user)
         login_user(user)
         flash(f"¡Bienvenido, {username}! Tu cuenta ha sido creada.", "success")
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("vuelta.dashboard"))
 
     return render_template("auth/register.html")
 
@@ -61,7 +61,7 @@ def register():
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("vuelta.dashboard"))
 
     if request.method == "POST":
         identifier = request.form.get("identifier", "").strip()
@@ -73,7 +73,7 @@ def login():
             login_user(user, remember=True)
             flash(f"Sesión iniciada. ¡A por los puntos, {user.username}!", "success")
             next_page = request.args.get("next")
-            return redirect(next_page or url_for("main.dashboard"))
+            return redirect(next_page or url_for("vuelta.dashboard"))
         flash("Usuario o contraseña incorrectos.", "danger")
 
     return render_template("auth/login.html")

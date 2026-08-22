@@ -1,0 +1,91 @@
+{% extends "vuelta/base.html" %}
+{% from 'vuelta/_macros.html' import swatch with context %}
+{% block title %}Reglas y puntajes · Apuestas La Vuelta 2026{% endblock %}
+{% block subnav %}{% set active_tab = 'rules' %}{% include 'vuelta/_tabs.html' %}{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+  <h2 class="mb-0">📋 Reglas y puntajes</h2>
+  <p class="text-muted mb-0">
+    Los puntajes los define el organizador y pueden cambiar; aquí siempre ves los vigentes.
+    {% if vuelta_scoring and vuelta_scoring.updated_at %}
+    <br><span class="small">Última actualización: {{ vuelta_scoring.updated_at|fdatetime }} h · hora Chile</span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-1-circle-fill"></i> Puesto en la etapa</div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Eliges <strong>un</strong> corredor como ganador de la etapa. Si termina en el
+          podio sumas según el puesto que consiga:
+        </p>
+        <table class="table points-table mb-0">
+          <tbody>
+            <tr><td>🥇 Llega <strong>1º</strong></td>
+                <td class="text-end"><span class="pts-badge">{{ vuelta_scoring.points_first|pts }}</span></td></tr>
+            <tr><td>🥈 Llega <strong>2º</strong></td>
+                <td class="text-end"><span class="pts-badge">{{ vuelta_scoring.points_second|pts }}</span></td></tr>
+            <tr><td>🥉 Llega <strong>3º</strong></td>
+                <td class="text-end"><span class="pts-badge">{{ vuelta_scoring.points_third|pts }}</span></td></tr>
+            <tr><td class="text-muted">Fuera del podio</td>
+                <td class="text-end text-muted">0 pts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-award-fill"></i> Los cuatro maillots</div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Además eliges quién <strong>viste cada maillot al terminar la etapa</strong>
+          (no quién lo ganará al final de La Vuelta). Cada acierto suma:
+        </p>
+        <table class="table points-table mb-0">
+          <tbody>
+            {% for key in JERSEY_KEYS %}
+            <tr>
+              <td>{{ swatch(key) }} <strong>{{ JERSEYS[key].name }}</strong>
+                <div class="text-muted small">{{ JERSEYS[key].what }}</div></td>
+              <td class="text-end align-middle">
+                <span class="pts-badge">{{ vuelta_scoring.jersey_points(key)|pts }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header"><i class="bi bi-info-circle-fill"></i> Cómo funciona</div>
+  <div class="card-body">
+    <ul class="mb-0">
+      <li><strong>Máximo por etapa:</strong> {{ vuelta_scoring.max_stage_points|pts }}
+        (ganador exacto + los cuatro maillots).</li>
+      <li><strong>Cuándo se puede apostar:</strong> las apuestas de cada etapa se abren
+        el día anterior a las 00:00 y se cierran 1 hora antes de la salida, siempre en
+        hora de Chile. Puedes cambiar tu apuesta todas las veces que quieras mientras
+        estén abiertas.</li>
+      <li><strong>El ganador de la etapa es obligatorio</strong>; los maillots son
+        opcionales (si dejas uno sin elegir, simplemente no suma).</li>
+      <li><strong>Resultados:</strong> se cargan automáticamente al terminar cada etapa.
+        Si una clasificación no está publicada todavía, el organizador la completa a mano.</li>
+      <li><strong>Acentos y mayúsculas no importan</strong> al comparar nombres:
+        «Pogačar» y «Pogacar» cuentan igual.</li>
+      <li><strong>Si el organizador cambia los puntajes</strong>, se recalculan todas las
+        etapas ya disputadas para que la tabla sea coherente de principio a fin.</li>
+      <li>El maillot blanco de La Vuelta es el del <strong>mejor corredor joven</strong>
+        de la general (hasta 2018 era el de la combinada).</li>
+      <li>Es solo por entretención: <strong>no hay dinero de por medio</strong>. 🚴</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

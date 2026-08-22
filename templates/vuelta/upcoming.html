@@ -1,0 +1,46 @@
+{% extends "vuelta/base.html" %}
+{% block title %}Próximas etapas · Apuestas La Vuelta 2026{% endblock %}
+{% block subnav %}{% set active_tab = 'upcoming' %}{% include 'vuelta/_tabs.html' %}{% endblock %}
+
+{% block content %}
+<h2 class="mb-1"><i class="bi bi-lock-fill text-secondary"></i> Próximas etapas</h2>
+<p class="text-muted">
+  Estas etapas están bloqueadas. Las apuestas de cada una se abren el día anterior
+  a las 00:00 y se cierran 1 h antes de la salida (hora de Chile).
+  {% if active %}Ahora puedes apostar la
+  <a href="{{ url_for('vuelta.dashboard') }}">Etapa {{ active.number }}</a>.{% endif %}
+</p>
+
+{% if not stages %}
+  <div class="alert alert-secondary">No hay más etapas futuras. 🏁</div>
+{% endif %}
+
+<div class="row g-3">
+  {% for s in stages %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 stage-locked">
+      <div class="position-relative">
+        <img src="{{ s.profile_image_url }}" class="card-img-top p-2"
+             style="background:#fff;height:120px;object-fit:contain"
+             alt="Altimetría de la etapa {{ s.number }}" onerror="this.style.display='none'">
+        <span class="lock-overlay"><i class="bi bi-lock-fill"></i></span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-bold">Etapa {{ s.number }}</span>
+          <span class="badge badge-closed">Bloqueada</span>
+        </div>
+        <div class="mt-1">{{ s.start_city }} → {{ s.finish_city }}</div>
+        <div class="text-muted small mt-1">
+          <i class="bi bi-calendar-event"></i> {{ s.date|fdate }} ·
+          <span class="stage-type-{{ s.stage_type }}">{{ s.distance_km }} km · {{ stage_type_label(s.stage_type) }}</span>
+        </div>
+        <div class="small text-muted mt-2">
+          <i class="bi bi-hourglass-split"></i> Se abre el {{ s.voting_opens|fdate }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

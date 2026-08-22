@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Predicciones TDF 2026{% endblock %}</title>
+  <title>{% block title %}Apuestas La Vuelta 2026{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/vuelta.css') }}" rel="stylesheet">
   {% if current_user.is_authenticated %}
   <link href="{{ url_for('static', filename='css/ceremony.css') }}" rel="stylesheet">
   {% endif %}
   {% block head %}{% endblock %}
 </head>
-<body>
-  <nav class="navbar navbar-expand-lg navbar-dark tdf-navbar sticky-top">
+<body class="vuelta">
+  <nav class="navbar navbar-expand-lg navbar-dark v-navbar sticky-top">
     <div class="container">
-      <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
-        <span class="brand-dot"></span> Archivo <span class="text-warning">TDF</span> 2026
+      <a class="navbar-brand fw-bold" href="{{ url_for('vuelta.dashboard') }}">
+        <span class="brand-jersey"></span> Apuestas <span class="text-gold">La Vuelta</span> España 2026
       </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
         <span class="navbar-toggler-icon"></span>
@@ -28,20 +28,19 @@
         <ul class="navbar-nav align-items-lg-center">
           {% if current_user.is_admin %}
           <li class="nav-item me-3 my-1 my-lg-0">
-            <a class="btn btn-sm btn-warning fw-semibold" href="{{ url_for('admin.panel') }}">
+            <a class="btn btn-sm btn-gold fw-semibold" href="{{ url_for('vuelta_admin.panel') }}">
               <i class="bi bi-gear-fill"></i> Administración
             </a>
           </li>
           {% endif %}
           <li class="nav-item d-flex align-items-center me-3">
-            <span class="badge bg-warning text-dark"><i class="bi bi-star-fill"></i> {{ current_user.total_points }} pts</span>
+            <span class="badge bg-light text-dark">
+              <i class="bi bi-star-fill text-warning"></i> {{ my_vuelta_points }} pts
+            </span>
           </li>
           <li class="nav-item d-flex align-items-center me-3 text-white-50">
             <i class="bi bi-person-circle me-1"></i> {{ current_user.username }}
           </li>
-          <li class="nav-item me-3"><a class="btn btn-sm btn-danger fw-semibold" href="{{ url_for('vuelta.dashboard') }}">
-            <i class="bi bi-arrow-left"></i> Volver a La Vuelta
-          </a></li>
           <li class="nav-item"><a class="btn btn-sm btn-outline-light" href="{{ url_for('auth.logout') }}">Salir</a></li>
         </ul>
         {% endif %}
@@ -52,17 +51,6 @@
   {% if current_user.is_authenticated %}{% block subnav %}{% endblock %}{% endif %}
 
   <main class="container py-4">
-    <div class="alert alert-secondary d-flex align-items-center gap-2" role="alert">
-      <i class="bi bi-archive-fill fs-5"></i>
-      <div>
-        <strong>Competencia archivada.</strong> Estás viendo el histórico del Tour
-        de France 2026 en modo solo consulta: etapas, apuestas, resultados y
-        puntos se conservan tal cual quedaron. Los participantes no ven estas
-        pantallas. La competencia activa es
-        <a href="{{ url_for('vuelta.dashboard') }}">La Vuelta a España 2026</a>.
-      </div>
-    </div>
-
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
@@ -76,16 +64,18 @@
   </main>
 
   <footer class="text-center text-muted py-4 small">
-    Predicciones del Tour de France 2026 · Solo por diversión · Sin dinero de por medio 🚴
+    Apuestas de La Vuelta a España 2026 · Solo por diversión · Sin dinero de por medio 🚴🇪🇸
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   {% if current_user.is_authenticated %}
   <script>
     window.__CEREMONY = {
-      ready: {{ 'true' if ceremony_ready else 'false' }},
+      ready: {{ 'true' if vuelta_ceremony_ready else 'false' }},
       isAdmin: {{ 'true' if current_user.is_admin else 'false' }},
-      dataUrl: "{{ url_for('main.ceremony_data') }}"
+      dataUrl: "{{ url_for('vuelta.ceremony_data') }}",
+      seenKey: "vuelta_ceremony_seen_v1",
+      subtitle: "La Vuelta a España 2026 · ¡Enhorabuena a todos!"
     };
   </script>
   <script src="{{ url_for('static', filename='js/ceremony.js') }}"></script>
