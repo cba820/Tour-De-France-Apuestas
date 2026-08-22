@@ -21,6 +21,28 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+
+          # ssh-keyscan falla si el host no responde y, con `bash -e`, el paso
+          # moria con un "exit code 1" que no decia nada. Comprobamos primero
+          # que el puerto 22 este accesible y, si no, explicamos por que.
+          if ! timeout 20 bash -c "until </dev/tcp/${{ secrets.EC2_HOST }}/22; do sleep 2; done" 2>/dev/null; then
+            echo "::error title=El servidor EC2 no responde::No se pudo abrir el puerto 22 de ${{ secrets.EC2_HOST }}. El codigo ya esta en GitHub, pero no hay donde desplegarlo."
+            echo ""
+            echo "Causas habituales, en orden de probabilidad:"
+            echo "  1. La instancia EC2 esta detenida (Stopped) o terminada."
+            echo "     -> AWS Console > EC2 > Instances > Start instance."
+            echo "  2. La instancia se reinicio y cambio su IP publica."
+            echo "     -> Actualiza el secret EC2_HOST del repositorio con la"
+            echo "        nueva DNS publica, y SITE_URL en el systemd unit."
+            echo "        (Una Elastic IP evita que vuelva a pasar.)"
+            echo "  3. El security group ya no permite SSH (puerto 22)."
+            echo "     -> Revisa las reglas de entrada del security group."
+            echo ""
+            echo "Cuando el servidor este arriba, relanza este workflow desde"
+            echo "la pestana Actions (Run workflow); no hace falta otro commit."
+            exit 1
+          fi
+
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Desplegar en el servidor
