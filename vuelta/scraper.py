@@ -283,13 +283,30 @@ def scrape_results(stage_number):
     o None si no se pudo determinar al ganador de la etapa (por ejemplo porque
     todavía no ha terminado). Los maillots que la fuente aún no publica quedan
     en None y no sobrescriben nada: se cargan a mano desde el panel.
+
+    procyclingstats es la fuente principal (es la única que publica las cuatro
+    clasificaciones). Si no responde —cae, cambia de estructura o bloquea la IP
+    del servidor— se recurre a cyclingstage, que al menos da el podio y el líder
+    de la general; los otros tres maillots quedarán para carga manual.
     """
-    url = f"{PCS_RACE}/stage-{stage_number}"
+    result = _pcs_results(stage_number)
+    if result:
+        return result
+
+    fallback = _cyclingstage_results(stage_number)
+    if fallback:
+        print(f"[vuelta/scraper] Etapa {stage_number}: procyclingstats no "
+              f"respondió; se usó cyclingstage (sin maillots verde/azul/blanco).")
+    return fallback
+
+
+def _pcs_results(stage_number):
+    """Resultados completos desde procyclingstats, o None."""
     try:
-        soup = _get_soup(url)
+        soup = _get_soup(f"{PCS_RACE}/stage-{stage_number}")
     except Exception as exc:  # noqa: BLE001
         print(f"[vuelta/scraper] No se pudo obtener la etapa "
-              f"{stage_number}: {exc}")
+              f"{stage_number} de procyclingstats: {exc}")
         return None
 
     tabs = _tab_leaders(soup)
@@ -306,3 +323,75 @@ def scrape_results(stage_number):
         leaders = tabs.get(tab)
         result[f"{key}_rider"] = leaders[0] if leaders else None
     return result
+
+
+def _cyclingstage_results(stage_number):
+    """Respaldo: podio y líder de la general desde cyclingstage, o None.
+
+    La página publica los resultados como encabezados <h2> seguidos de un <p>
+    con líneas «N. Nombre (país) tiempo» separadas por <br>. Los títulos varían
+    de un año a otro («Stage 1 Results – 2026 Vuelta», «Results 1st stage 2025
+    Vuelta»), así que se busca por palabras clave en vez de por texto exacto.
+    """
+    url = (f"{CS_BASE}/vuelta-{YEAR}-results/"
+           f"stage-{stage_number}-spain-results-{YEAR}/")
+    try:
+        soup = _get_soup(url)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[vuelta/scraper] No se pudo obtener la etapa "
+              f"{stage_number} de cyclingstage: {exc}")
+        return None
+
+    podium = _names_after_heading(
+        soup, rf"(?=.*\bresults?\b)(?=.*\b0*{stage_number}\b).*")
+    if not podium:
+        return None
+
+    general = _names_after_heading(
+        soup, rf"(?:gc|general\s+classification)\s*after\s*stage\s*0*{stage_number}\b")
+    if not general:
+        general = _names_after_heading(soup, r"gc\s+after\s+stage")
+
+    return {
+        "first_rider": podium[0] if len(podium) > 0 else None,
+        "second_rider": podium[1] if len(podium) > 1 else None,
+        "third_rider": podium[2] if len(podium) > 2 else None,
+        "red_rider": general[0] if general else None,
+        # cyclingstage no publica estas tres clasificaciones para La Vuelta.
+        "green_rider": None,
+        "blue_rider": None,
+        "white_rider": None,
+    }
+
+
+def _names_after_heading(soup, pattern):
+    """Nombres del <p> que sigue al primer <h2>/<h3> que casa `pattern`."""
+    rx = re.compile(pattern, re.IGNORECASE)
+    for heading in soup.find_all(["h2", "h3"]):
+        if not rx.search(heading.get_text(" ", strip=True)):
+            continue
+        paragraph = heading.find_next("p")
+        if paragraph is None:
+            continue
+        names = _parse_result_lines(paragraph.get_text("\n", strip=True))
+        if names:
+            return names
+    return []
+
+
+def _parse_result_lines(text):
+    """De «1. Nombre (ccc) 4:10:45\\n2. …» devuelve los nombres en orden."""
+    names = []
+    for line in text.split("\n"):
+        match = re.match(r"^\d+\.\s*(.+)", line.strip())
+        if not match:
+            continue
+        rest = match.group(1)
+        # Cortar en el código de país «(ccc)»…
+        rest = re.split(r"\s*\([A-Za-z]{2,3}\)", rest, maxsplit=1)[0]
+        # …o, si no lo hubiera, en el tiempo / «s.t.» / «+».
+        rest = re.split(r"\s+(?:\+|s\.t\.|\d+:\d{2})", rest, maxsplit=1)[0]
+        name = rest.strip(" .")
+        if name and re.search(r"[A-Za-zÀ-ÿ]", name):
+            names.append(name)
+    return names

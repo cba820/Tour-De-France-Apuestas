@@ -7,12 +7,18 @@ from flask_login import current_user, login_required
 
 from datetime import timedelta
 
+from .archive import archive_guard
 from .extensions import db
 from .models import Rider, Stage, VOTING_CLOSE_HOURS_BEFORE
 from .timeutils import now_local
 from .updater import close_stage_manual, update_results
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+# El Tour está archivado: este panel es solo para administradores. La guarda es
+# redundante con @admin_required de cada vista, pero mantiene el archivo cerrado
+# de forma uniforme (404 en vez de 403) aunque se añadan vistas nuevas.
+bp.before_request(archive_guard)
 
 # Al reabrir la votación de forma fortuita, se abre durante esta cantidad de horas.
 REOPEN_VOTING_HOURS = 1

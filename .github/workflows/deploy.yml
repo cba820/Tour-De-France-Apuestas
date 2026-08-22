@@ -32,7 +32,14 @@ jobs:
           cd /home/ec2-user/TDF_apuestas
 
           echo "==> Respaldo de la base de datos"
-          [ -f instance/tdf.db ] && cp instance/tdf.db "instance/tdf.db.bak" || true
+          # Copia fechada (se conservan las 10 mas recientes) + la copia .bak de
+          # siempre. Importa porque la base guarda el historico del Tour y de
+          # La Vuelta: usuarios, apuestas, resultados y puntos.
+          if [ -f instance/tdf.db ]; then
+            cp instance/tdf.db "instance/tdf.db.bak"
+            cp instance/tdf.db "instance/tdf.db.$(date +%Y%m%d-%H%M%S).bak"
+            ls -1t instance/tdf.db.*-*.bak 2>/dev/null | tail -n +11 | xargs -r rm -f
+          fi
 
           echo "==> Trayendo el código nuevo"
           git fetch --all --prune
@@ -45,6 +52,24 @@ jobs:
           pip install -r requirements.txt
 
           echo "==> Reiniciando el servicio"
+          # Al arrancar, create_app() ejecuta db.create_all() + los seeders de
+          # ambas competencias. Es idempotente: crea solo lo que falte y no
+          # toca ni borra datos existentes.
           sudo systemctl restart tdf
+
+          echo "==> Esperando a que el servicio responda"
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://127.0.0.1/login; then
+              echo "    servicio arriba tras ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+          echo "==> Diagnostico post-deploy"
+          # No falla el deploy si el diagnostico encuentra avisos: solo informa.
+          if [ -d .venv ]; then PY=.venv/bin/python; else PY=python3; fi
+          $PY scripts/diagnostico.py || true
+
           echo "==> Deploy completado"
           EOF

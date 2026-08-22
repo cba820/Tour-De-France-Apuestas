@@ -100,6 +100,49 @@ resultado, y el acierto se detecte sin ambigüedad.
 Todo el scraping es *best effort*: si una web cambia de estructura, la app sigue funcionando con
 los datos embebidos en `vuelta/seed.py` y el admin puede cargar los resultados a mano.
 
+## Despliegue y carga de datos
+
+No hay migraciones ni scripts que ejecutar a mano: **todo corre solo al reiniciar el
+servicio**. El workflow de GitHub Actions hace respaldo de la base, trae el código,
+instala dependencias y reinicia; al arrancar, `create_app()` ejecuta:
+
+1. `db.create_all()` — crea únicamente las tablas que falten. No altera ni borra las
+   existentes, y como La Vuelta no añade columnas a ninguna tabla del Tour ni a `users`,
+   no hace falta migración.
+2. `tdf.seed.run_seed()` — carga inicial del Tour y promoción de admins. Idempotente.
+3. `vuelta.seed.run_seed()` — las 21 etapas, la lista de inscritos y los puntajes por
+   defecto. Idempotente: si ya hay datos, no hace nada ni toca la red.
+
+Verificado sobre una copia con datos: tras el arranque las tablas del Tour quedan
+idénticas (usuarios, apuestas, resultados y puntos) y aparecen las de La Vuelta. En
+reinicios posteriores el arranque es instantáneo y con **cero peticiones HTTP**.
+
+### Diagnóstico
+
+Después de desplegar (el workflow ya lo ejecuta y deja la salida en el log del deploy):
+
+```bash
+cd /home/ec2-user/TDF_apuestas && .venv/bin/python scripts/diagnostico.py
+```
+
+Revisa base de datos, admins, etapas, corredores, puntajes, integridad del archivo del
+Tour y las tres fuentes externas. `[XX]` es un fallo; `[!!]` es solo un aviso.
+
+### Si la fuente falla o bloquea la IP del servidor
+
+Los datacenters como EC2 a veces están bloqueados por procyclingstats. Está previsto:
+
+- **Inscritos**: si no responde, se usa la start list embebida en
+  [vuelta/seed.py](vuelta/seed.py) (los 184 corredores reales de los 23 equipos), así el
+  desplegable nunca queda a medias. El botón «Actualizar inscritos» del panel reintenta
+  la fuente en vivo cuando haga falta.
+- **Resultados**: si no responde, se recurre a cyclingstage, que da el podio y el maillot
+  rojo; los maillots verde, azul y blanco quedan para carga manual desde el panel. La app
+  avisa en el log cuál de las dos fuentes se usó.
+
+Ambos caminos degradados están probados: con procyclingstats devolviendo 403 la app
+arranca con los 184 corredores y cierra la etapa 1 con podio y maillot rojo correctos.
+
 ## Recordatorios por email
 
 **Desactivados** por configuración (`REMINDERS_ENABLED=0`): el scheduler no programa el envío
@@ -125,8 +168,10 @@ Para reactivar el Tour el próximo año basta con volver a registrar sus bluepri
 ```
 run.py                  Punto de entrada
 config.py               Configuración (clave, DB, horarios, admin, puntajes por defecto)
+scripts/diagnostico.py  Chequeo de base de datos y fuentes (para correr tras desplegar)
 tdf/                    Fábrica de la app + Tour de France 2026 (archivado) + auth compartida
   __init__.py           create_app: registra La Vuelta en la raíz y el Tour bajo /archivo
+  archive.py            Guarda que restringe el archivo del Tour a administradores
   auth.py               Registro / login / logout (compartidos)
   extensions.py         db y login_manager
   models.py             User + modelos del Tour

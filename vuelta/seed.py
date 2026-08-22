@@ -1,8 +1,12 @@
 """Carga inicial de La Vuelta a España 2026: 21 etapas + lista de inscritos.
 
-Los datos embebidos (STAGES_2026 y FAVORITES) actúan como respaldo fiable: el
-scraper intenta primero y, si la web cambió o no hay red, se usa la copia local
-para que la app arranque igual. Nada de esto toca los datos del Tour de France.
+Los datos embebidos (STAGES_2026 y STARTLIST) actúan como respaldo fiable: el
+scraper intenta primero y, si la web cambió, no hay red o la fuente bloquea la
+IP del servidor, se usa la copia local para que la app arranque completa.
+
+Todo es idempotente: cada función comprueba si ya hay datos y no hace nada si es
+así, de modo que reiniciar el servicio no duplica ni sobrescribe nada. Ninguna
+de estas funciones toca los datos del Tour de France.
 """
 from datetime import date
 
@@ -40,26 +44,146 @@ STAGES_2026 = [
     (21, 9, 13, "Granada", "Granada", 112.0, "hills"),
 ]
 
-# Respaldo mínimo de corredores (candidatos a la general y a etapas), por si la
-# lista de inscritos no se puede scrapear en el primer arranque.
+# Respaldo de la lista de inscritos, tal como la publicaba procyclingstats el
+# 22-08-2026 (día de la salida): 184 corredores de 23 equipos. Sirve para que la
+# app arranque con el desplegable completo aunque el scraping falle o la fuente
+# bloquee la IP del servidor. Al refrescar inscritos desde el panel se completa
+# con las sustituciones que haya habido.
+STARTLIST = {
+    "Alpecin - Premier Tech": [
+        "Francesco Busatto", "Gal Glivar", "Hugo Houle", "Kaden Groves",
+        "Lindsay de Vylder", "Michael Gogl", "Ramses Debruyne",
+        "Sente Sentjens"
+    ],
+    "Bahrain - Victorious": [
+        "Attila Valter", "Jakob Omrzel", "Matevž Govekar",
+        "Mathijs Paasschens", "Pau Miquel Delgado", "Pello Bilbao",
+        "Roman Ermakov", "Santiago Buitrago Sanchez"
+    ],
+    "Burgos Burpellet BH": [
+        "Clément Alleno", "César Macías Estrada", "Jesús Herrada Lopez",
+        "José Luis Faura Asensio", "José Manuel Díaz Gallego",
+        "Mario Aparicio Munoz", "Sergio Geovani Chumil Gonzalez",
+        "Sinuhé Fernández Rodriguez"
+    ],
+    "Cofidis": [
+        "Alex Kirsch", "Alexis Renard", "Bryan Coquard",
+        "Emanuel Buchmann", "Louis Rouland", "Paul Ourselin",
+        "Sergio Samitier", "Sylvain Moniquet"
+    ],
+    "Decathlon CMA CGM Team": [
+        "Callum Scotson", "Felix Gall", "Gregor Mühlberger",
+        "Jordan Labrosse", "Léo Bisiaux", "Matthew Riccitello",
+        "Oscar Chamberlain", "Sander de Pestel"
+    ],
+    "EF Education - EasyPost": [
+        "Alastair Mackellar", "Darren Rafferty", "Georg Steinhauser",
+        "James Shaw", "Juan Felipe Rodriguez", "Markel Beloki",
+        "Richard Carapaz", "Vincenzo Albanese"
+    ],
+    "Equipo Kern Pharma": [
+        "Diego Uriarte Belzunegi", "Ibon Ruiz", "Iván Cobo Cayon",
+        "Iván Ramiro Sosa", "Iñigo Elosegui", "Marc Brustenga Masague",
+        "Mats Wenzel", "Urko Berrade Fernandez"
+    ],
+    "Groupama - FDJ United": [
+        "Bastien Tronchon", "Clément Berthet", "Enzo Paleni",
+        "Guillaume Martin", "Olivier le Gac", "Rudy Molard", "Rémy Rochas",
+        "Valentin Madouas"
+    ],
+    "Lidl - Trek": [
+        "Jacopo Mosca", "Julien Bernard", "Lennard Kämna", "Mads Pedersen",
+        "Mathias Norsgaard", "Mattias Skjelmose Jensen", "Patrick Konrad",
+        "Thibau Nys"
+    ],
+    "Lotto Intermarché": [
+        "Jarno Widar", "Lars Craps", "Lorenzo Rota", "Luca van Boven",
+        "Reuben Thompson", "Roel van Sintmaartensdijk",
+        "Steffen de Schuyteneer", "Vito Braet"
+    ],
+    "Movistar Team": [
+        "Carlos Canal", "Cian Uijtdebroeks", "Enric Mas", "Iván Romeo",
+        "Jorge Arcas", "Orluis Aular", "Pablo Castrillo Zapater",
+        "Raúl García Pierna"
+    ],
+    "NSN Cycling Team": [
+        "Aleksey Lutsenko", "Floris van Tricht", "George Bennett",
+        "Hugo Hofstetter", "Jan Hirt", "Moritz Kretschy", "Nick Schultz",
+        "Pau Martí Soriano"
+    ],
+    "Netcompany INEOS": [
+        "Axel Laurance", "Ben Turner", "Carlos Rodríguez Cano",
+        "Embret Svestad-Bårdseng", "Jack Haig", "Joshua Tarling",
+        "Lucas Hamilton", "Oscar Onley"
+    ],
+    "Pinarello Q36.5 Pro Cycling Team": [
+        "David González Lopez", "David de la Cruz", "Edward Irl Dunbar",
+        "Marcel Camprubí", "Milan Vader", "Thomas Gloag", "Walter Calzoni",
+        "Xabier Mikel Azparren Irurzun"
+    ],
+    "Red Bull - BORA - hansgrohe": [
+        "Callum Thornley", "Finn Fisher-Black", "Frederik Wandahl",
+        "Gianni Moscon", "Gianni Vermeersch", "Jordi Meeus",
+        "Luke Tuckwell", "Primož Roglič"
+    ],
+    "Soudal Quick-Step": [
+        "Alberto Dainese", "Ethan Hayter", "Fabio van den Bossche",
+        "Filippo Zana", "Gianmarco Garofoli", "Mauri Vansevenant",
+        "Mikel Landa", "Valentin Paret-Peintre"
+    ],
+    "Team Jayco AlUla": [
+        "Alessandro Covi", "Asbjorn Hellemose", "Finlay Pickering",
+        "Hamish Mckenzie", "Jasha Sütterlin", "Koen Bouwman",
+        "Paul Double", "Rudy Porter"
+    ],
+    "Team Picnic PostNL": [
+        "Chris Hamilton", "Gijs Leemreize", "Guillermo Juan Martinez",
+        "Henri-François Renard-Haquin", "Mattia Gaffuri", "Oliver Peace",
+        "Timo Roosen", "Timo de Jong"
+    ],
+    "Team Visma | Lease a Bike": [
+        "Ben Tulett", "Bruno Armirail", "Christophe Laporte",
+        "Jorgen Nordhagen", "Matthew Brennan", "Sepp Kuss",
+        "Steven Kruijswijk", "Wout van Aert"
+    ],
+    "Tudor Pro Cycling Team": [
+        "Arthur Kluckers", "Fabian Weiss", "Hannes Wilksch",
+        "Lawrence Warbasse", "Marco Brenner", "Roland Thalmann",
+        "Stefan Küng", "William Barta"
+    ],
+    "UAE Team Emirates - XRG": [
+        "Domen Novak", "Ivo Emanuel Alves", "Jay Vine", "João Almeida",
+        "Kevin Vermaerke", "Pablo Torres Arias", "Pavel Sivakov",
+        "Tadej Pogačar"
+    ],
+    "Uno-X Mobility": [
+        "Andreas Kron", "Andreas Leknessund", "Fredrik Dversnes",
+        "Magnus Cort Nielsen", "Martin Tjotta", "Rasmus Tiller",
+        "Simon Dalby", "Tobias Halland Johannessen"
+    ],
+    "XDS Astana Team": [
+        "Alessandro Romele", "Cristián Rodríguez", "Darren van Bekkum",
+        "Harold Tejada", "Henok Mulubrhan", "Lorenzo Fortunato",
+        "Victor Langellotti", "Yevgeniy Fedorov"
+    ],
+}
+
+# Candidatos a la general y a etapas: se marcan con estrella en el desplegable.
 FAVORITES = [
-    ("Tadej Pogačar", "UAE Team Emirates - XRG"),
-    ("Primož Roglič", "Red Bull - BORA - hansgrohe"),
-    ("João Almeida", "UAE Team Emirates - XRG"),
-    ("Juan Ayuso", "Lidl - Trek"),
-    ("Enric Mas", "Movistar Team"),
-    ("Mikel Landa", "Soudal Quick-Step"),
-    ("Ethan Hayter", "Soudal Quick-Step"),
-    ("Joshua Tarling", "Netcompany INEOS"),
-    ("Wout van Aert", "Team Visma | Lease a Bike"),
-    ("Mads Pedersen", "Lidl - Trek"),
-    ("Jordi Meeus", "Red Bull - BORA - hansgrohe"),
-    ("Christophe Laporte", "Team Visma | Lease a Bike"),
-    ("Finn Fisher-Black", "Red Bull - BORA - hansgrohe"),
-    ("Léo Bisiaux", "Decathlon CMA CGM Team"),
-    ("Callum Thornley", "Red Bull - BORA - hansgrohe"),
-    ("Gianni Vermeersch", "Red Bull - BORA - hansgrohe"),
+    "Tadej Pogačar", "Primož Roglič", "João Almeida", "Richard Carapaz",
+    "Enric Mas", "Mikel Landa", "Ethan Hayter", "Joshua Tarling",
+    "Wout van Aert", "Mads Pedersen", "Jordi Meeus", "Christophe Laporte",
+    "Finn Fisher-Black", "Léo Bisiaux", "Santiago Buitrago Sanchez",
+    "Cian Uijtdebroeks", "Felix Gall", "Kaden Groves", "Sepp Kuss",
+    "Oscar Onley", "Jay Vine", "Pello Bilbao",
 ]
+
+
+def backup_riders():
+    """La start list de respaldo como lista de dicts {name, team}."""
+    return [{"name": name, "team": team}
+            for team, names in STARTLIST.items()
+            for name in names]
 
 
 def seed_stages():
@@ -93,13 +217,23 @@ def seed_stages():
 
 
 def seed_riders():
-    """Puebla la lista de corredores con los inscritos (o con el respaldo)."""
+    """Puebla la lista de corredores con los inscritos.
+
+    Intenta la fuente en vivo y, si falla (web caída, estructura cambiada o la
+    IP del servidor bloqueada), usa la start list embebida: así el desplegable
+    de la apuesta nunca queda a medias.
+    """
     if VueltaRider.query.count() > 0:
         return
 
     scraped = scraper.scrape_startlist()
-    favorite_names = {name.lower() for name, _ in FAVORITES}
+    if scraped:
+        source = "fuente en vivo"
+    else:
+        scraped = backup_riders()
+        source = "respaldo embebido"
 
+    favorite_names = {name.lower() for name in FAVORITES}
     seen = set()
     for item in scraped:
         name = (item.get("name") or "").strip()
@@ -109,15 +243,17 @@ def seed_riders():
         db.session.add(VueltaRider(name=name, team=item.get("team"),
                                    is_favorite=name.lower() in favorite_names))
 
-    # El respaldo se añade siempre: garantiza que los nombres más buscados estén
-    # en el desplegable aunque el scraping de inscritos haya fallado.
-    for name, team in FAVORITES:
-        if name.lower() not in seen:
+    # Los favoritos se aseguran siempre, incluso si la fuente los omitió.
+    for item in backup_riders():
+        name = item["name"]
+        if name.lower() in favorite_names and name.lower() not in seen:
             seen.add(name.lower())
-            db.session.add(VueltaRider(name=name, team=team, is_favorite=True))
+            db.session.add(VueltaRider(name=name, team=item["team"],
+                                       is_favorite=True))
 
     db.session.commit()
-    print(f"[vuelta/seed] {VueltaRider.query.count()} corredores cargados.")
+    print(f"[vuelta/seed] {VueltaRider.query.count()} corredores cargados "
+          f"({source}).")
 
 
 def refresh_riders():
@@ -129,7 +265,8 @@ def refresh_riders():
     """
     scraped = scraper.scrape_startlist()
     if not scraped:
-        return "No se pudo obtener la lista de inscritos; nada que actualizar."
+        return ("No se pudo leer la lista de inscritos de la fuente "
+                "(¿sin red o IP bloqueada?); no se cambió nada.")
 
     existing = {r.name.lower(): r for r in VueltaRider.query.all()}
     added, updated = 0, 0

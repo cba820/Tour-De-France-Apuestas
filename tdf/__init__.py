@@ -11,8 +11,7 @@ Las cuentas de usuario (tabla `users`) y el login son compartidos por ambas.
 """
 import atexit
 
-from flask import Flask, abort, redirect, url_for
-from flask_login import current_user
+from flask import Flask
 
 from config import Config
 from .extensions import db, login_manager
@@ -68,26 +67,12 @@ def _register_blueprints(app, config_class):
     app.register_blueprint(vuelta_bp)
     app.register_blueprint(vuelta_admin_bp)
 
-    # Archivo del Tour de France 2026: mismas vistas, solo para administradores.
+    # Archivo del Tour de France 2026: mismas vistas, movidas bajo el prefijo de
+    # archivo. La guarda que las restringe a administradores la instalan los
+    # propios blueprints al importarse (ver tdf/archive.py).
     prefix = config_class.ARCHIVE_URL_PREFIX.rstrip("/")
-    tdf_main_bp.before_request(_archive_guard)
-    tdf_admin_bp.before_request(_archive_guard)
     app.register_blueprint(tdf_main_bp, url_prefix=prefix)
     app.register_blueprint(tdf_admin_bp, url_prefix=f"{prefix}/admin")
-
-
-def _archive_guard():
-    """Deja pasar al archivo del Tour solo a los administradores.
-
-    Los participantes no ven ningún enlace a estas pantallas (no aparecen en la
-    navegación de La Vuelta); esta guarda evita además que lleguen escribiendo
-    la URL a mano.
-    """
-    if not current_user.is_authenticated:
-        return redirect(url_for("auth.login"))
-    if not current_user.is_admin:
-        abort(404)
-    return None
 
 
 def _register_template_helpers(app):

@@ -3,11 +3,15 @@ from flask import (Blueprint, flash, jsonify, redirect, render_template,
                    request, url_for)
 from flask_login import current_user, login_required
 
+from .archive import archive_guard
 from .extensions import db
 from .models import Prediction, Rider, Stage
 from .scoring import ranking
 
 bp = Blueprint("main", __name__)
+
+# El Tour está archivado: estas pantallas son solo para administradores.
+bp.before_request(archive_guard)
 
 # Campos de StageResult que deben estar completos para habilitar la ceremonia.
 _RESULT_FIELDS = ("first_rider", "second_rider", "third_rider",
