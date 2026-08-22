@@ -197,7 +197,7 @@ gunicorn esté caído (el workflow ya lo tiene en cuenta).
 
 ## Cuando la instancia cambia de IP pública
 
-Es el fallo que más molesta: al hac*Stop* y *Start*, EC2 asigna una IP nueva y se
+Es el fallo que más molesta: al hacer *Stop* y *Start*, EC2 asigna una IP nueva y se
 rompen tres cosas a la vez.
 
 | Qué se rompe | Cómo se arregla |

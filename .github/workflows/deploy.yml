@@ -22,6 +22,18 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
+          # El fallo "Permission denied (publickey)" no dice si la clave del
+          # secret esta mal pegada o si simplemente no es la que el servidor
+          # acepta. El fingerprint lo aclara y es seguro publicarlo: identifica
+          # la clave sin revelarla. Se compara a mano con la de authorized_keys
+          # del servidor (ssh-keygen -lf ~/.ssh/authorized_keys).
+          if ssh-keygen -lf ~/.ssh/deploy_key > /tmp/fp.txt 2>/dev/null; then
+            echo "Clave del secret EC2_SSH_KEY: $(cat /tmp/fp.txt)"
+          else
+            echo "::error title=EC2_SSH_KEY no es una clave privada valida::ssh-keygen no pudo leerla. Suele pasar al pegarla incompleta o sin los saltos de linea. Vuelve a copiarla entera, con las lineas BEGIN y END incluidas; en PowerShell: Get-Content tdf-key.pem -Raw | Set-Clipboard"
+            exit 1
+          fi
+
           # ssh-keyscan falla si el host no responde y, con `bash -e`, el paso
           # moria con un "exit code 1" que no decia nada. Comprobamos primero
           # que el puerto 22 este accesible y, si no, explicamos por que.
