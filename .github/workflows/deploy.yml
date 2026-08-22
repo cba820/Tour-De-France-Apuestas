@@ -79,14 +79,30 @@ jobs:
           # toca ni borra datos existentes.
           sudo systemctl restart tdf
 
-          echo "==> Esperando a que el servicio responda"
+          echo "==> Esperando a que la app responda"
+          # gunicorn puede estar en :80 (directo) o en :8000 (detras de Caddy,
+          # que es como esta montado hoy). Se prueban los dos y solo cuenta un
+          # 200 de la propia app: pedir el :80 a secas devolveria el 308 de
+          # Caddy y daria por bueno el arranque aunque gunicorn estuviera caido.
+          APP_UP=""
           for i in $(seq 1 30); do
-            if curl -fsS -o /dev/null http://127.0.0.1/login; then
-              echo "    servicio arriba tras ${i}s"
-              break
-            fi
+            for port in 8000 80; do
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" -L --max-time 5 \
+                     "http://127.0.0.1:${port}/login" 2>/dev/null || echo 000)
+              if [ "$CODE" = "200" ]; then
+                APP_UP="$port"
+                break 2
+              fi
+            done
             sleep 1
           done
+          if [ -n "$APP_UP" ]; then
+            echo "    app respondiendo en 127.0.0.1:${APP_UP} tras ${i}s"
+          else
+            echo "::error title=La app no respondio::gunicorn no devolvio 200 en /login ni por :8000 ni por :80. Revisa 'sudo journalctl -u tdf -n 50'."
+            sudo systemctl status tdf --no-pager 2>&1 | tail -20 || true
+            exit 1
+          fi
 
           echo "==> Diagnostico post-deploy"
           # No falla el deploy si el diagnostico encuentra avisos: solo informa.
