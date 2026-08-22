@@ -235,3 +235,42 @@ cd /home/ec2-user/TDF_apuestas && .venv/bin/python scripts/diagnostico.py
 Los logs de la app quedan en buffer (el unit no fija `PYTHONUNBUFFERED`), así que
 `journalctl` puede no mostrar los mensajes del arranque hasta que el proceso se
 reinicia. Para verificar el estado real, fíate del diagnóstico y no del log.
+
+## Claves SSH: la trampa al crear una nueva
+
+Crear un par de claves en AWS **no** lo instala en una instancia que ya está
+corriendo: eso solo ocurre al lanzarla. Si generas una clave nueva y la pones en
+el secret `EC2_SSH_KEY`, el deploy falla con
+`Permission denied (publickey)` hasta que autorices su clave **pública** en el
+servidor.
+
+Para autorizar una clave nueva, entrando con una que ya funcione:
+
+```bash
+# 1) En tu PC: derivar la publica de la privada (no expone la privada)
+ssh-keygen -y -f la-vuelta-apuestas.pem > nueva.pub
+
+# 2) Subirla y anadirla a authorized_keys
+scp -i tdf-key.pem nueva.pub ec2-user@<host>:/tmp/nueva.pub
+ssh -i tdf-key.pem ec2-user@<host>   'cat /tmp/nueva.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && rm /tmp/nueva.pub'
+```
+
+Conviene **dejar la clave anterior autorizada** como respaldo: si el secret se
+rompe o se pega mal, sigues teniendo acceso al servidor para arreglarlo.
+
+Claves autorizadas actualmente en `~/.ssh/authorized_keys` de `ec2-user`:
+
+| Clave | Fingerprint | Uso |
+|---|---|---|
+| `tdf-key` | `SHA256:nOcBagi2A9Bu…S+aYXo` | Acceso manual de respaldo |
+| `la-vuelta-apuestas` | `SHA256:HMRBGY0rAS0n…t5Ious` | La del secret `EC2_SSH_KEY` (deploy automático) |
+
+Para comprobar cuál acepta el servidor:
+
+```bash
+ssh-keygen -lf ~/.ssh/authorized_keys
+```
+
+Y para saber cuál lleva el secret, el workflow publica su fingerprint al
+desplegar (el fingerprint identifica la clave sin revelarla). Si no coinciden,
+ese es el problema.
