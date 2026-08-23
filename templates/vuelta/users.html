@@ -1,0 +1,123 @@
+{% extends "vuelta/base.html" %}
+{% block title %}Usuarios · Admin La Vuelta 2026{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h2 class="mb-0"><i class="bi bi-people-fill"></i> Usuarios registrados</h2>
+    <div class="text-muted small">
+      {{ rows|length }} cuenta{{ '' if rows|length == 1 else 's' }} ·
+      {{ blocked_count }} bloqueada{{ '' if blocked_count == 1 else 's' }}
+    </div>
+  </div>
+  <a class="btn btn-outline-vuelta" href="{{ url_for('vuelta_admin.panel') }}">
+    <i class="bi bi-arrow-left"></i> Volver al panel
+  </a>
+</div>
+
+<div class="alert alert-secondary small">
+  <i class="bi bi-info-circle-fill"></i>
+  <strong>Bloquear</strong> una cuenta le impide iniciar sesión, la expulsa de
+  inmediato si estaba conectada y la saca de la clasificación y las estadísticas.
+  <strong>No borra nada</strong>: sus apuestas y puntos se conservan y vuelven a
+  contar si la desbloqueas. Útil para registros de spam.
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th class="text-center">Rol</th>
+          <th class="text-center">Registro</th>
+          <th class="text-center">La Vuelta</th>
+          <th class="text-center">Tour</th>
+          <th class="text-center">Estado</th>
+          <th class="text-end">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{{ 'table-warning' if row.user.is_blocked }}{{ ' rank-me' if row.is_me and not row.user.is_blocked }}">
+          <td>
+            <strong>{{ row.user.username }}</strong>
+            {% if row.is_me %}<span class="pts-badge-soft ms-1">tú</span>{% endif %}
+          </td>
+          <td class="small text-muted">{{ row.user.email }}</td>
+          <td class="text-center">
+            {% if row.user.is_admin %}
+              <span class="badge bg-dark"><i class="bi bi-gear-fill"></i> admin</span>
+            {% else %}
+              <span class="text-muted small">participante</span>
+            {% endif %}
+          </td>
+          <td class="text-center small text-muted">{{ row.user.created_at|fdate }}</td>
+          <td class="text-center small">
+            {% if row.vuelta_bets %}
+              {{ row.vuelta_bets }} apuesta{{ '' if row.vuelta_bets == 1 else 's' }}
+              <div class="text-muted">{{ row.vuelta_points|pts }}</div>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center small text-muted">
+            {{ row.tdf_bets if row.tdf_bets else '—' }}
+          </td>
+          <td class="text-center">
+            {% if row.user.is_blocked %}
+              <span class="badge bg-danger"><i class="bi bi-slash-circle"></i> bloqueada</span>
+            {% else %}
+              <span class="badge badge-open">activa</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if row.is_me %}
+              <span class="text-muted small" title="No puedes bloquear tu propia cuenta">—</span>
+            {% elif row.is_protected and not row.user.is_blocked %}
+              <span class="text-muted small"
+                    title="Cuenta de administrador protegida (está en ADMIN_EMAILS)">
+                <i class="bi bi-shield-lock-fill"></i> protegida
+              </span>
+            {% else %}
+              {% if row.user.is_blocked %}
+                {% set confirm_msg = '¿Desbloquear a «' ~ row.user.username ~ '»? Volverá a tener acceso y a contar en la clasificación.' %}
+              {% else %}
+                {% set confirm_msg = '¿Bloquear a «' ~ row.user.username ~ '»? No podrá iniciar sesión y saldrá de la clasificación. Su historial se conserva.' %}
+              {% endif %}
+              {# El atributo va con comillas SIMPLES a propósito: tojson devuelve
+                 la cadena entre comillas dobles, que cerrarían el atributo antes
+                 de tiempo y dejarían el confirm() vacío. tojson además escapa las
+                 comillas simples, así que el texto no puede romper el atributo. #}
+              <form method="post" class="d-inline"
+                    action="{{ url_for('vuelta_admin.toggle_block', user_id=row.user.id) }}"
+                    onsubmit='return confirm({{ confirm_msg|tojson }});'>
+                {% if row.user.is_blocked %}
+                <button class="btn btn-sm btn-success">
+                  <i class="bi bi-unlock-fill"></i> Desbloquear
+                </button>
+                {% else %}
+                <button class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-slash-circle"></i> Bloquear
+                </button>
+                {% endif %}
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No hay cuentas registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<p class="text-muted small mt-3">
+  La columna <strong>La Vuelta</strong> muestra las apuestas registradas y los puntos
+  acumulados en la competencia actual; <strong>Tour</strong>, las apuestas que la cuenta
+  hizo en el Tour de France 2026 (archivado). Una cuenta con 0 apuestas en ambas y un
+  email extraño suele ser un registro automático de spam.
+</p>
+{% endblock %}

@@ -99,10 +99,19 @@ def recompute_all_points():
         recompute_stage_points(stage, config)
 
 
+def active_users():
+    """Participantes que cuentan: todos menos los bloqueados.
+
+    Una cuenta bloqueada (p. ej. un registro de spam) no debe aparecer en la
+    clasificación ni en las estadísticas, pero su historial se conserva y vuelve
+    a contar en cuanto se la desbloquea.
+    """
+    from tdf.models import User
+    return User.query.filter_by(is_blocked=False).all()
+
+
 def ranking():
     """Usuarios ordenados por puntos de La Vuelta (desc), con posición y empates."""
-    from tdf.models import User
-
     preds = VueltaPrediction.query.all()
     finished_ids = {s.id for s in
                     VueltaStage.query.filter_by(is_finished=True).all()}
@@ -115,7 +124,7 @@ def ranking():
             agg["played"] += 1
 
     rows = []
-    for user in User.query.all():
+    for user in active_users():
         agg = by_user.get(user.id, {"points": 0, "played": 0})
         rows.append({"user": user, "points": agg["points"],
                      "played": agg["played"]})

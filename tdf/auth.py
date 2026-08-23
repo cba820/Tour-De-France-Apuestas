@@ -68,6 +68,13 @@ def login():
         password = request.form.get("password", "")
         user = (User.query.filter_by(username=identifier).first()
                 or User.query.filter_by(email=identifier.lower()).first())
+        if user and user.check_password(password) and user.is_blocked:
+            # Mensaje propio: sin esto, login_user() rechazaría la cuenta
+            # bloqueada por is_active y el usuario vería "contraseña incorrecta",
+            # que es confuso y le haría intentarlo una y otra vez.
+            flash("Tu cuenta está bloqueada por el organizador. "
+                  "Ponte en contacto con él si crees que es un error.", "warning")
+            return render_template("auth/login.html")
         if user and user.check_password(password):
             _apply_admin_email(user)
             login_user(user, remember=True)

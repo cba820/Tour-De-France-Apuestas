@@ -156,7 +156,8 @@ def upcoming():
 @login_required
 def stage_detail(number):
     stage = VueltaStage.query.filter_by(number=number).first_or_404()
-    predictions = VueltaPrediction.query.filter_by(stage_id=stage.id).all()
+    predictions = [p for p in VueltaPrediction.query.filter_by(stage_id=stage.id)
+                   if not p.user.is_blocked]
     predictions.sort(key=lambda p: (-p.points, p.user.username.lower()))
 
     my_detail = None

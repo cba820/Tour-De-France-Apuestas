@@ -9,8 +9,8 @@ entrar al archivo del Tour de France 2026.
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import (Blueprint, abort, flash, redirect, render_template, request,
-                   url_for)
+from flask import (Blueprint, abort, current_app, flash, redirect,
+                   render_template, request, url_for)
 from flask_login import current_user, login_required
 
 from tdf.extensions import db
@@ -52,6 +52,81 @@ def panel():
         active_stage=_active_stage(),
         scoring_fields=VueltaScoring.FIELDS,
     )
+
+
+@bp.route("/usuarios")
+@admin_required
+def users():
+    """Listado de cuentas registradas, con su actividad y estado."""
+    from tdf.models import Prediction, User
+
+    from .models import VueltaPrediction
+
+    accounts = User.query.order_by(User.created_at, User.id).all()
+
+    # Actividad de cada cuenta en una sola pasada, para no hacer una consulta
+    # por usuario (N+1) en una tabla que crece con cada participante.
+    vuelta_bets, vuelta_points, tdf_bets = {}, {}, {}
+    for pred in VueltaPrediction.query.all():
+        vuelta_bets[pred.user_id] = vuelta_bets.get(pred.user_id, 0) + 1
+        vuelta_points[pred.user_id] = vuelta_points.get(pred.user_id, 0) + pred.points
+    for pred in Prediction.query.all():
+        tdf_bets[pred.user_id] = tdf_bets.get(pred.user_id, 0) + 1
+
+    protected = [e.lower() for e in current_app.config.get("ADMIN_EMAILS", [])]
+
+    rows = [{
+        "user": account,
+        "vuelta_bets": vuelta_bets.get(account.id, 0),
+        "vuelta_points": vuelta_points.get(account.id, 0),
+        "tdf_bets": tdf_bets.get(account.id, 0),
+        "is_me": account.id == current_user.id,
+        "is_protected": (account.email or "").lower() in protected,
+    } for account in accounts]
+
+    return render_template("vuelta/users.html", rows=rows,
+                           blocked_count=sum(1 for r in rows
+                                             if r["user"].is_blocked))
+
+
+@bp.route("/usuarios/<int:user_id>/bloqueo", methods=["POST"])
+@admin_required
+def toggle_block(user_id):
+    """Bloquea o desbloquea una cuenta.
+
+    No borra nada: la cuenta bloqueada no puede entrar y desaparece de la
+    clasificación y las estadísticas, pero conserva su historial y vuelve a
+    contar al desbloquearla.
+    """
+    from tdf.models import User
+
+    account = db.session.get(User, user_id)
+    if account is None:
+        flash("Esa cuenta no existe.", "danger")
+        return redirect(url_for("vuelta_admin.users"))
+
+    # Guardas contra quedarse fuera del propio panel.
+    if account.id == current_user.id:
+        flash("No puedes bloquear tu propia cuenta.", "warning")
+        return redirect(url_for("vuelta_admin.users"))
+
+    protected = [e.lower() for e in current_app.config.get("ADMIN_EMAILS", [])]
+    if not account.is_blocked and (account.email or "").lower() in protected:
+        flash(f"«{account.username}» es una cuenta de administrador protegida "
+              "(está en ADMIN_EMAILS) y no se puede bloquear.", "warning")
+        return redirect(url_for("vuelta_admin.users"))
+
+    account.is_blocked = not account.is_blocked
+    db.session.commit()
+
+    if account.is_blocked:
+        flash(f"«{account.username}» ha sido bloqueado: no podrá iniciar sesión "
+              "y ya no aparece en la clasificación. Su historial se conserva.",
+              "success")
+    else:
+        flash(f"«{account.username}» ha sido desbloqueado: vuelve a tener acceso "
+              "y a contar en la clasificación.", "success")
+    return redirect(url_for("vuelta_admin.users"))
 
 
 @bp.route("/puntajes", methods=["POST"])

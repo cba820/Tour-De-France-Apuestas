@@ -124,7 +124,9 @@ def progression():
             points_map[(pred.user_id, number)] = pred.points
 
     datasets = []
-    for user in User.query.order_by(User.username).all():
+    users = (User.query.filter_by(is_blocked=False)
+             .order_by(User.username).all())
+    for user in users:
         cumulative, data = 0, []
         for number in labels:
             cumulative += points_map.get((user.id, number), 0)
@@ -139,10 +141,15 @@ def group_records():
     """Récords del grupo, para mostrar en la página de estadísticas."""
     finished_ids = {s.id for s in
                     VueltaStage.query.filter_by(is_finished=True).all()}
+    # Las cuentas bloqueadas no participan: sus apuestas no deben salir en los
+    # records ni en el corredor mas elegido.
+    blocked_ids = {u.id for u in User.query.filter_by(is_blocked=True).all()}
 
     best_record, best_points = None, 0
     winners = []
     for pred in VueltaPrediction.query.all():
+        if pred.user_id in blocked_ids:
+            continue
         if pred.pick_winner:
             winners.append(pred.pick_winner)
         if pred.stage_id in finished_ids and pred.points > best_points:

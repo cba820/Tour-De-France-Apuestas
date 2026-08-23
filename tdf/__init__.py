@@ -37,10 +37,13 @@ def create_app(config_class=Config, start_scheduler=True):
 
     _register_blueprints(app, config_class)
     _register_template_helpers(app)
+    _register_blocked_guard(app)
 
-    # Crear tablas y cargar datos iniciales de ambas competencias.
+    # Crear tablas, aplicar migraciones y cargar datos iniciales.
     with app.app_context():
         db.create_all()
+        from .migrations import run_migrations
+        run_migrations()
         from .seed import run_seed
         run_seed(config_class)
         from vuelta.seed import run_seed as run_vuelta_seed
@@ -73,6 +76,40 @@ def _register_blueprints(app, config_class):
     prefix = config_class.ARCHIVE_URL_PREFIX.rstrip("/")
     app.register_blueprint(tdf_main_bp, url_prefix=prefix)
     app.register_blueprint(tdf_admin_bp, url_prefix=f"{prefix}/admin")
+
+
+def _register_blocked_guard(app):
+    """Cierra la sesión de una cuenta que acaba de ser bloqueada.
+
+    `User.is_active` ya deja fuera a las cuentas bloqueadas, porque
+    `UserMixin.is_authenticated` de Flask-Login devuelve `self.is_active`: con la
+    cuenta bloqueada, todo `@login_required` la rechaza aunque tenga la cookie.
+    Eso protege el acceso, pero el usuario vería el mensaje genérico «Inicia
+    sesión para acceder a esta página» y no entendería por qué.
+
+    Esta guarda existe para eso: detecta la cuenta bloqueada, borra su cookie y
+    le explica lo que pasa. **Ojo:** no puede filtrar por
+    `current_user.is_authenticated` —ya es False por lo anterior—, así que
+    comprueba `is_blocked` directamente. En un usuario anónimo el atributo no
+    existe y `getattr` devuelve False, así que no le afecta.
+    """
+    from flask import flash, redirect, request, url_for
+    from flask_login import current_user, logout_user
+
+    # Rutas que deben seguir accesibles: los estáticos y el propio flujo de
+    # sesión (si no, cerrar sesión entraría en un bucle de redirecciones).
+    exempt = {"static", "auth.login", "auth.logout", "auth.register"}
+
+    @app.before_request
+    def kick_blocked_users():
+        if request.endpoint in exempt:
+            return None
+        if not getattr(current_user, "is_blocked", False):
+            return None
+        logout_user()
+        flash("Tu cuenta ha sido bloqueada por el organizador. "
+              "Si crees que es un error, ponte en contacto con él.", "warning")
+        return redirect(url_for("auth.login"))
 
 
 def _register_template_helpers(app):

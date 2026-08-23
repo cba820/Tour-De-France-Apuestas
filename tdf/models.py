@@ -19,6 +19,11 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    # Cuenta bloqueada por el administrador: no puede iniciar sesión y no aparece
+    # en la clasificación ni en las estadísticas, pero su historial se conserva
+    # intacto y vuelve a contar si se la desbloquea. La columna la añade
+    # tdf/migrations.py, porque db.create_all() no altera tablas existentes.
+    is_blocked = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=now_local)
 
     predictions = db.relationship("Prediction", backref="user", lazy=True,
@@ -29,6 +34,15 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_active(self):
+        """Flask-Login usa esta propiedad: con False, login_user() rechaza.
+
+        Sobrescribe la de UserMixin (que devuelve True siempre) para que una
+        cuenta bloqueada no pueda iniciar sesión por ninguna vía.
+        """
+        return not self.is_blocked
 
     @property
     def total_points(self):

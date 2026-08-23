@@ -26,6 +26,9 @@
             onclick="window.RaceCeremony && window.RaceCeremony.open();">
       <i class="bi bi-trophy-fill"></i> Previsualizar ceremonia final
     </button>
+    <a class="btn btn-outline-vuelta" href="{{ url_for('vuelta_admin.users') }}">
+      <i class="bi bi-people-fill"></i> Usuarios
+    </a>
     <a class="btn btn-outline-secondary" href="{{ url_for('main.dashboard') }}">
       <i class="bi bi-archive"></i> Archivo TDF 2026
     </a>
@@ -41,6 +44,8 @@
   una apuesta. <strong>Abrir apuestas 1 hora</strong> reabre la etapa activa
   {% if active_stage %}(<strong>Etapa {{ active_stage.number }}</strong>){% endif %}
   para casos fortuitos. Si una clasificación no está publicada, cárgala a mano abajo.
+  <strong>Usuarios</strong> lista las cuentas registradas y permite bloquear o
+  desbloquear cualquiera (sin borrar su historial).
   <strong>Archivo TDF 2026</strong> abre el histórico del Tour, que solo ves tú.
   Los <strong>recordatorios por email están desactivados</strong>.
 </p>
