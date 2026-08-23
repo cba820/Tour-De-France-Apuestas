@@ -19,7 +19,9 @@
 
 set -u
 
-DOMAIN="predicciones-draft-tdf"          # solo el subdominio, sin .duckdns.org
+# Subdominio de DuckDNS, sin el .duckdns.org. Se puede sobrescribir escribiendo
+# otro en ~/duckdns/domain, para no tener que editar este archivo.
+DOMAIN="la-vuelta-apuestas"
 DIR="$HOME/duckdns"
 TOKEN_FILE="$DIR/token"
 LOG="$DIR/duck.log"

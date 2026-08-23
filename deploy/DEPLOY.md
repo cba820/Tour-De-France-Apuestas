@@ -184,7 +184,7 @@ Internet ──► Caddy (:80 redirige a :443, :443 con HTTPS)
 
 - El unit `tdf.service` arranca gunicorn con `--bind 127.0.0.1:8000` (no en el :80).
 - `/etc/caddy/Caddyfile` define **dos** dominios, ambos hacia `127.0.0.1:8000`:
-  - `predicciones-draft-tdf.duckdns.org` — el principal.
+  - `la-vuelta-apuestas.duckdns.org` — el principal.
   - `<ip-publica>.sslip.io` — respaldo, ver más abajo.
 - Caddy no tiene `ExecReload` en su unit, así que para recargar sin cortar:
   ```bash
@@ -306,7 +306,7 @@ printf '%s' 'TU-TOKEN-AQUI' > ~/duckdns/token && chmod 600 ~/duckdns/token
 ~/duckdns/duckdns-update.sh && tail -2 ~/duckdns/duck.log
 ```
 
-Debe registrar `OK predicciones-draft-tdf.duckdns.org actualizado`. El cron lo
+Debe registrar `OK la-vuelta-apuestas.duckdns.org actualizado`. El cron lo
 repite cada 5 minutos y al arrancar la instancia, así que tras un Stop/Start la
 URL se arregla sola en menos de un minuto.
 
@@ -316,8 +316,8 @@ en `~/duckdns/duck.log`, así que se puede instalar antes de tener el token.
 ### 3. Comprobar
 
 ```bash
-nslookup predicciones-draft-tdf.duckdns.org     # debe dar la IP actual
-curl -sI https://predicciones-draft-tdf.duckdns.org/login | head -1
+nslookup la-vuelta-apuestas.duckdns.org     # debe dar la IP actual
+curl -sI https://la-vuelta-apuestas.duckdns.org/login | head -1
 ```
 
 El vhost ya está en el Caddyfile, así que en cuanto el DNS apunte bien funciona
