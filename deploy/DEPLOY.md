@@ -274,3 +274,51 @@ ssh-keygen -lf ~/.ssh/authorized_keys
 Y para saber cuál lleva el secret, el workflow publica su fingerprint al
 desplegar (el fingerprint identifica la clave sin revelarla). Si no coinciden,
 ese es el problema.
+
+## URL estable sin Elastic IP: DuckDNS + actualizador automático
+
+Sin Elastic IP, la IP pública cambia **cada vez que la instancia se para y se
+arranca** (no en un reboot, y no mientras está encendida). Eso rompe cualquier URL
+que lleve la IP dentro, como las de `sslip.io`.
+
+La solución gratis es un dominio de DuckDNS con un cron que le avise de la IP
+nueva. El dominio no cambia nunca, así que se puede repartir a los participantes
+sin miedo.
+
+### 1. Conseguir el token (una sola vez)
+
+Entra a <https://www.duckdns.org> con cualquiera de sus botones de login. El
+**token** es un UUID que aparece arriba del panel; no caduca y no cambia aunque
+añadas o quites dominios.
+
+Si el login falla con `reCaptcha too low`: prueba en una ventana de incógnito, con
+el bloqueador de anuncios desactivado, o desde otra red (datos del móvil). Es un
+servicio de voluntarios y su captcha falla a ratos.
+
+### 2. Instalar el actualizador en el servidor
+
+```bash
+cd /home/ec2-user/TDF_apuestas
+mkdir -p ~/duckdns && cp scripts/duckdns-update.sh ~/duckdns/
+chmod +x ~/duckdns/duckdns-update.sh
+printf '%s' 'TU-TOKEN-AQUI' > ~/duckdns/token && chmod 600 ~/duckdns/token
+( crontab -l 2>/dev/null;   echo '*/5 * * * * $HOME/duckdns/duckdns-update.sh';   echo '@reboot sleep 30 && $HOME/duckdns/duckdns-update.sh' ) | crontab -
+~/duckdns/duckdns-update.sh && tail -2 ~/duckdns/duck.log
+```
+
+Debe registrar `OK predicciones-draft-tdf.duckdns.org actualizado`. El cron lo
+repite cada 5 minutos y al arrancar la instancia, así que tras un Stop/Start la
+URL se arregla sola en menos de un minuto.
+
+Mientras el archivo `~/duckdns/token` esté vacío el script no hace nada y lo anota
+en `~/duckdns/duck.log`, así que se puede instalar antes de tener el token.
+
+### 3. Comprobar
+
+```bash
+nslookup predicciones-draft-tdf.duckdns.org     # debe dar la IP actual
+curl -sI https://predicciones-draft-tdf.duckdns.org/login | head -1
+```
+
+El vhost ya está en el Caddyfile, así que en cuanto el DNS apunte bien funciona
+sin tocar Caddy.
